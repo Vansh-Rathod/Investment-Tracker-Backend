@@ -1,4 +1,11 @@
-CREATE PROCEDURE InsertUpdateDeleteUserEquity  
+/****** Object:  StoredProcedure [dbo].[InsertUpdateDeleteUserEquity]    Script Date: 02-02-2026 11:33:36 PM ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE PROCEDURE [dbo].[InsertUpdateDeleteUserEquity]  
 (    
     @OperationType INT,  
     @Id INT,  
@@ -112,3 +119,6 @@ BEGIN
         RETURN;    
     END    
 END 
+GO
+
+

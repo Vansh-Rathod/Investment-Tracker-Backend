@@ -1,11 +1,4 @@
-/****** Object:  StoredProcedure [dbo].[GetUserByEmail]    Script Date: 02-02-2026 11:28:12 PM ******/
-SET ANSI_NULLS ON
-GO
-
-SET QUOTED_IDENTIFIER ON
-GO
-
-CREATE PROCEDURE [dbo].[GetUserByEmail]    
+ALTER PROCEDURE GetUserByEmail    
 @Email NVARCHAR(200),    
 @IsActive BIT = 1,  
 @IsDeleted BIT = 0  
@@ -35,6 +28,3 @@ select Id,
         AND IsDeleted = @IsDeleted  
     
 END
-GO
-
-

@@ -1,11 +1,4 @@
-/****** Object:  StoredProcedure [dbo].[GetUsers]    Script Date: 02-02-2026 11:32:17 PM ******/
-SET ANSI_NULLS ON
-GO
-
-SET QUOTED_IDENTIFIER ON
-GO
-
-CREATE PROCEDURE [dbo].[GetUsers]
+CREATE PROCEDURE GetUsers
 (
     @UserId INT,
     @IsActive BIT = 1,
@@ -89,5 +82,3 @@ BEGIN
         @UserId, @IsActive, @IsDeleted, @SearchText, @Offset, @PageSize;
 END
 GO
-
-

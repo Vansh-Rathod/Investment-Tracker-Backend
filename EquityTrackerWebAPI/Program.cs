@@ -21,7 +21,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAll",
         policy =>
         {
-            policy.WithOrigins("http://localhost:5173") // Change to your React app's URL
+            policy.WithOrigins("http://localhost:3000", "http://localhost:5173") // Next.js and Vite
                   .AllowAnyMethod()
                   .AllowAnyHeader()
                   .AllowCredentials();
@@ -42,6 +42,10 @@ builder.Services.AddTransient<JwtTokenService>();
 // ---------------------------------------------- Repositories ----------------------------------------------
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserEquityRepository, UserEquityRepository>();
+builder.Services.AddScoped<IPortfolioRepository, PortfolioRepository>();
+builder.Services.AddScoped<ISIPRepository, SIPRepository>();
+builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
+builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
 
 // Add services to the container.
 
@@ -113,14 +117,28 @@ builder.Services.AddSwaggerGen(c =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if(app.Environment.IsDevelopment())
-{
+//if(app.Environment.IsDevelopment())
+//{
+//    app.UseSwagger();
+//    app.UseSwaggerUI();
+//}
+
+// Protect Swagger with a simple secret key in Production
+//var swaggerSecret = builder.Configuration["SWAGGER_SECRET"]; // set in env vars
+
+//if (app.Environment.IsDevelopment() ||
+//    (!string.IsNullOrEmpty(swaggerSecret) &&
+//     app.Configuration["SwaggerKey"] == swaggerSecret))
+//{
     app.UseSwagger();
     app.UseSwaggerUI();
-}
+//}
 
 app.UseHttpsRedirection();
 
+app.UseCors("AllowAll");
+
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
