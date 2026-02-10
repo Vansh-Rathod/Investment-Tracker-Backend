@@ -46,6 +46,13 @@ builder.Services.AddScoped<IPortfolioRepository, PortfolioRepository>();
 builder.Services.AddScoped<ISIPRepository, SIPRepository>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
+builder.Services.AddScoped<IAMCRepository, AMCRepository>();
+builder.Services.AddScoped<IAssetTypeRepository, AssetTypeRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<IExchangeRepository, ExchangeRepository>();
+builder.Services.AddScoped<IMutualFundRepository, MutualFundRepository>();
+builder.Services.AddScoped<IStockRepository, StockRepository>();
+builder.Services.AddScoped<ISipExecutionRepository, SipExecutionRepository>();
 
 // Add services to the container.
 

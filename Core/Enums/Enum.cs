@@ -42,5 +42,86 @@ namespace Core.Enums
             [Description("Delete")]
             DELETE = 3
         }
+
+        public enum CategoryType
+        {
+            [Description("Equity")]
+            Equity = 1,
+
+            [Description("Debt")]
+            Debt = 2,
+
+            [Description("Hybrid")]
+            Hybrid = 3,
+
+            [Description("Commodities")]
+            Commodities = 4
+        }
+
+        public enum Frequency
+        {
+            [Description("Daily")]
+            Daily = 1,
+
+            [Description("Weekly")]
+            Weekly = 2,
+
+            [Description("Monthly")]
+            Monthly = 3,
+
+            [Description("Yearly")]
+            Yearly = 4
+        }
+
+        public enum SIPStatus
+        {
+            [Description("Start")]
+            Start = 1,
+
+            [Description("Pause")]
+            Pause = 2,
+
+            [Description("Cancel")]
+            Cancel = 3,
+
+            [Description("Delete")]
+            Delete = 4
+        }
+
+        public enum TransactionType
+        {
+            [Description("Credit")]
+            Credit = 1,
+
+            [Description("Debit")]
+            Debit = 2
+        }
+
+        public enum EquityTransactionType
+        {
+            [Description("Buy")]
+            Buy = 1,
+
+            [Description("Sell")]
+            Sell = 2,
+
+            [Description("Dividend")]
+            Dividend = 3,
+
+            [Description("Split")]
+            Split = 4,
+
+            [Description("Bonus")]
+            Bonus = 5
+        }
+
+        public enum PortfolioType
+        {
+            [Description("Stock")]
+            Stock = 1,
+
+            [Description("Mutual Fund")]
+            MutualFund = 2
+        }
     }
 }

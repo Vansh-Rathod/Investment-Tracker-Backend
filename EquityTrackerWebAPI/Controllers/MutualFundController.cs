@@ -19,13 +19,21 @@ namespace EquityTrackerWebAPI.Controllers
     public class MutualFundController : ControllerBase
     {
         private readonly IUserEquityRepository _userEquityRepository;
+        private readonly IUserEquityRepository _userEquityRepository;
         private readonly IUserRepository _userRepository;
+        private readonly IMutualFundRepository _mutualFundRepository;
         private readonly ILoggingService _loggingService;
 
         public MutualFundController( IUserEquityRepository userEquityRepository, IUserRepository userRepository, ILoggingService loggingService )
         {
             _userEquityRepository = userEquityRepository;
             _userRepository = userRepository;
+            _loggingService = loggingService;
+        public MutualFundController( IUserEquityRepository userEquityRepository, IUserRepository userRepository, IMutualFundRepository mutualFundRepository, ILoggingService loggingService )
+        {
+            _userEquityRepository = userEquityRepository;
+            _userRepository = userRepository;
+            _mutualFundRepository = mutualFundRepository;
             _loggingService = loggingService;
         }
 
@@ -308,5 +316,36 @@ namespace EquityTrackerWebAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Get available market mutual funds
+        /// </summary>
+        [HttpGet("market")]
+        public async Task<APIResponse<List<MutualFundViewModel>>> GetMarketMutualFunds(
+            [FromQuery] int fundId = 0,
+            [FromQuery] int amcId = 0,
+            [FromQuery] string fundName = null,
+            [FromQuery] int categoryId = 0,
+            [FromQuery] int categoryType = 0,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string searchText = "",
+            [FromQuery] string sortColumn = "FundName",
+            [FromQuery] string sortOrder = "ASC")
+        {
+            try
+            {
+                var result = await _mutualFundRepository.GetMutualFunds(fundId, amcId, fundName, categoryId, categoryType, page, pageSize, searchText, sortColumn, sortOrder);
+                if (result.Success)
+                {
+                    return APIResponse<List<MutualFundViewModel>>.SuccessResponse(result.Data, result.Message);
+                }
+                return APIResponse<List<MutualFundViewModel>>.FailureResponse(result.Errors, result.Message);
+            }
+            catch (Exception ex)
+            {
+                await _loggingService.LogAsync("Exception occurred while fetching market mutual funds", Core.Enums.Enum.LogLevel.Error, "MutualFundController.GetMarketMutualFunds", ex, null);
+                return APIResponse<List<MutualFundViewModel>>.FailureResponse(new List<string> { "Internal Server Error" }, "An error occurred while fetching market mutual funds.");
+            }
+        }
     }
 }

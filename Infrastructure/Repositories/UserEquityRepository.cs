@@ -57,7 +57,21 @@ namespace Infrastructure.Repositories
             }
             catch(Exception ex )
             {
-                _loggingService.LogAsync("Failed to fetch user equities", Core.Enums.Enum.LogLevel.Error, "UserEquityRepository.GetUserEquities", ex, null);
+                await _loggingService.LogAsync("Failed to fetch user equities", Core.Enums.Enum.LogLevel.Error, "UserEquityRepository.GetUserEquities", ex, new Dictionary<string, object>
+                {
+                    { "UserId", userId },
+                    { "EquityId", equityId },
+                    { "EquityType", equityType },
+                    { "Page", page },
+                    { "PageSize", pageSize },
+                    { "SearchText", searchText },
+                    { "SortOrder", sortOrder },
+                    { "SortField", sortField },
+                    { "IsActive", isActive },
+                    { "IsDeleted", isDeleted },
+                    { "FromDate", fromDate },
+                    { "ToDate", toDate }
+                });
 
                 return DbResponse<List<UserEquityViewModel>>.FailureDbResponse(
                     new List<UserEquityViewModel>(),

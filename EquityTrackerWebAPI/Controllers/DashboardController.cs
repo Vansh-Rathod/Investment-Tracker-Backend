@@ -1,5 +1,6 @@
 using Core.CommonModels;
 using Core.DTOs;
+using Core.ViewModels;
 using GenericServices.Interfaces;
 using Infrastructure.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -25,14 +26,14 @@ namespace EquityTrackerWebAPI.Controllers
         /// Get dashboard summary with overall portfolio metrics
         /// </summary>
         [HttpGet("summary")]
-        public async Task<APIResponse<DashboardSummaryDTO>> GetSummary(int portfolioId = 0)
+        public async Task<APIResponse<DashboardSummaryViewModel>> GetSummary(int portfolioId = 0)
         {
             try
             {
                 var userIdClaim = User.FindFirst("userId")?.Value;
                 if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
                 {
-                    return APIResponse<DashboardSummaryDTO>.FailureResponse(
+                    return APIResponse<DashboardSummaryViewModel>.FailureResponse(
                         new List<string> { "Invalid token" },
                         "Cannot find valid User Id in token"
                     );
@@ -40,8 +41,8 @@ namespace EquityTrackerWebAPI.Controllers
 
                 var summary = await _dashboardRepository.GetDashboardSummaryAsync(userId, portfolioId);
 
-                return APIResponse<DashboardSummaryDTO>.SuccessResponse(
-                    summary,
+                return APIResponse<DashboardSummaryViewModel>.SuccessResponse(
+                    summary.Data.FirstOrDefault(),
                     "Dashboard summary fetched successfully"
                 );
             }
@@ -55,7 +56,7 @@ namespace EquityTrackerWebAPI.Controllers
                     null
                 );
 
-                return APIResponse<DashboardSummaryDTO>.FailureResponse(
+                return APIResponse<DashboardSummaryViewModel>.FailureResponse(
                     new List<string> { "Internal Server Error" },
                     "An error occurred while fetching dashboard summary"
                 );
@@ -66,14 +67,14 @@ namespace EquityTrackerWebAPI.Controllers
         /// Get asset allocation (Stocks vs Mutual Funds)
         /// </summary>
         [HttpGet("allocation")]
-        public async Task<APIResponse<List<AllocationDataDTO>>> GetAssetAllocation(int portfolioId = 0)
+        public async Task<APIResponse<List<AllocationDataViewModel>>> GetAssetAllocation(int portfolioId = 0)
         {
             try
             {
                 var userIdClaim = User.FindFirst("userId")?.Value;
                 if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
                 {
-                    return APIResponse<List<AllocationDataDTO>>.FailureResponse(
+                    return APIResponse<List<AllocationDataViewModel>>.FailureResponse(
                         new List<string> { "Invalid token" },
                         "Cannot find valid User Id in token"
                     );
@@ -81,8 +82,8 @@ namespace EquityTrackerWebAPI.Controllers
 
                 var allocation = await _dashboardRepository.GetAssetAllocationAsync(userId, portfolioId);
 
-                return APIResponse<List<AllocationDataDTO>>.SuccessResponse(
-                    allocation.ToList(),
+                return APIResponse<List<AllocationDataViewModel>>.SuccessResponse(
+                    allocation.Data,
                     "Asset allocation fetched successfully"
                 );
             }
@@ -96,7 +97,7 @@ namespace EquityTrackerWebAPI.Controllers
                     null
                 );
 
-                return APIResponse<List<AllocationDataDTO>>.FailureResponse(
+                return APIResponse<List<AllocationDataViewModel>>.FailureResponse(
                     new List<string> { "Internal Server Error" },
                     "An error occurred while fetching asset allocation"
                 );
@@ -107,14 +108,14 @@ namespace EquityTrackerWebAPI.Controllers
         /// Get sector-wise allocation for stocks
         /// </summary>
         [HttpGet("stocks/sector-allocation")]
-        public async Task<APIResponse<List<AllocationDataDTO>>> GetSectorAllocation(int portfolioId = 0)
+        public async Task<APIResponse<List<AllocationDataViewModel>>> GetSectorAllocation(int portfolioId = 0)
         {
             try
             {
                 var userIdClaim = User.FindFirst("userId")?.Value;
                 if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
                 {
-                    return APIResponse<List<AllocationDataDTO>>.FailureResponse(
+                    return APIResponse<List<AllocationDataViewModel>>.FailureResponse(
                         new List<string> { "Invalid token" },
                         "Cannot find valid User Id in token"
                     );
@@ -122,8 +123,8 @@ namespace EquityTrackerWebAPI.Controllers
 
                 var allocation = await _dashboardRepository.GetSectorAllocationAsync(userId, portfolioId);
 
-                return APIResponse<List<AllocationDataDTO>>.SuccessResponse(
-                    allocation.ToList(),
+                return APIResponse<List<AllocationDataViewModel>>.SuccessResponse(
+                    allocation.Data,
                     "Sector allocation fetched successfully"
                 );
             }
@@ -137,7 +138,7 @@ namespace EquityTrackerWebAPI.Controllers
                     null
                 );
 
-                return APIResponse<List<AllocationDataDTO>>.FailureResponse(
+                return APIResponse<List<AllocationDataViewModel>>.FailureResponse(
                     new List<string> { "Internal Server Error" },
                     "An error occurred while fetching sector allocation"
                 );
@@ -148,14 +149,14 @@ namespace EquityTrackerWebAPI.Controllers
         /// Get category-wise allocation for mutual funds
         /// </summary>
         [HttpGet("mutual-funds/category-allocation")]
-        public async Task<APIResponse<List<AllocationDataDTO>>> GetCategoryAllocation(int portfolioId = 0)
+        public async Task<APIResponse<List<AllocationDataViewModel>>> GetCategoryAllocation(int portfolioId = 0)
         {
             try
             {
                 var userIdClaim = User.FindFirst("userId")?.Value;
                 if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
                 {
-                    return APIResponse<List<AllocationDataDTO>>.FailureResponse(
+                    return APIResponse<List<AllocationDataViewModel>>.FailureResponse(
                         new List<string> { "Invalid token" },
                         "Cannot find valid User Id in token"
                     );
@@ -163,8 +164,8 @@ namespace EquityTrackerWebAPI.Controllers
 
                 var allocation = await _dashboardRepository.GetCategoryAllocationAsync(userId, portfolioId);
 
-                return APIResponse<List<AllocationDataDTO>>.SuccessResponse(
-                    allocation.ToList(),
+                return APIResponse<List<AllocationDataViewModel>>.SuccessResponse(
+                    allocation.Data,
                     "Category allocation fetched successfully"
                 );
             }
@@ -178,7 +179,7 @@ namespace EquityTrackerWebAPI.Controllers
                     null
                 );
 
-                return APIResponse<List<AllocationDataDTO>>.FailureResponse(
+                return APIResponse<List<AllocationDataViewModel>>.FailureResponse(
                     new List<string> { "Internal Server Error" },
                     "An error occurred while fetching category allocation"
                 );
@@ -189,14 +190,14 @@ namespace EquityTrackerWebAPI.Controllers
         /// Get AMC-wise allocation for mutual funds
         /// </summary>
         [HttpGet("mutual-funds/amc-allocation")]
-        public async Task<APIResponse<List<AllocationDataDTO>>> GetAMCAllocation(int portfolioId = 0)
+        public async Task<APIResponse<List<AllocationDataViewModel>>> GetAMCAllocation(int portfolioId = 0)
         {
             try
             {
                 var userIdClaim = User.FindFirst("userId")?.Value;
                 if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
                 {
-                    return APIResponse<List<AllocationDataDTO>>.FailureResponse(
+                    return APIResponse<List<AllocationDataViewModel>>.FailureResponse(
                         new List<string> { "Invalid token" },
                         "Cannot find valid User Id in token"
                     );
@@ -204,8 +205,8 @@ namespace EquityTrackerWebAPI.Controllers
 
                 var allocation = await _dashboardRepository.GetAMCAllocationAsync(userId, portfolioId);
 
-                return APIResponse<List<AllocationDataDTO>>.SuccessResponse(
-                    allocation.ToList(),
+                return APIResponse<List<AllocationDataViewModel>>.SuccessResponse(
+                    allocation.Data,
                     "AMC allocation fetched successfully"
                 );
             }
@@ -219,7 +220,7 @@ namespace EquityTrackerWebAPI.Controllers
                     null
                 );
 
-                return APIResponse<List<AllocationDataDTO>>.FailureResponse(
+                return APIResponse<List<AllocationDataViewModel>>.FailureResponse(
                     new List<string> { "Internal Server Error" },
                     "An error occurred while fetching AMC allocation"
                 );
@@ -230,14 +231,14 @@ namespace EquityTrackerWebAPI.Controllers
         /// Get portfolio performance over time
         /// </summary>
         [HttpGet("performance")]
-        public async Task<APIResponse<List<PerformanceDataDTO>>> GetPerformance(int portfolioId = 0, int months = 6)
+        public async Task<APIResponse<List<PerformanceDataViewModel>>> GetPerformance(int portfolioId = 0, int months = 6)
         {
             try
             {
                 var userIdClaim = User.FindFirst("userId")?.Value;
                 if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
                 {
-                    return APIResponse<List<PerformanceDataDTO>>.FailureResponse(
+                    return APIResponse<List<PerformanceDataViewModel>>.FailureResponse(
                         new List<string> { "Invalid token" },
                         "Cannot find valid User Id in token"
                     );
@@ -245,8 +246,8 @@ namespace EquityTrackerWebAPI.Controllers
 
                 var performance = await _dashboardRepository.GetPortfolioPerformanceAsync(userId, portfolioId, months);
 
-                return APIResponse<List<PerformanceDataDTO>>.SuccessResponse(
-                    performance.ToList(),
+                return APIResponse<List<PerformanceDataViewModel>>.SuccessResponse(
+                    performance.Data,
                     "Portfolio performance fetched successfully"
                 );
             }
@@ -260,7 +261,7 @@ namespace EquityTrackerWebAPI.Controllers
                     null
                 );
 
-                return APIResponse<List<PerformanceDataDTO>>.FailureResponse(
+                return APIResponse<List<PerformanceDataViewModel>>.FailureResponse(
                     new List<string> { "Internal Server Error" },
                     "An error occurred while fetching portfolio performance"
                 );

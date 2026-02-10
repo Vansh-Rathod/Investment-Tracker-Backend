@@ -1,5 +1,8 @@
+using Core.CommonModels;
 using Core.DTOs;
+using Core.ViewModels;
 using Dapper;
+using GenericServices.Interfaces;
 using Infrastructure.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -7,18 +10,23 @@ using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 
+using Core.Entities;
+using static Core.Enums.Enum;
+
 namespace Infrastructure.Repositories
 {
     public class TransactionRepository : ITransactionRepository
     {
         private readonly IDbConnectionFactory _connectionFactory;
+        private readonly ILoggingService _loggingService;
 
-        public TransactionRepository(IDbConnectionFactory connectionFactory)
+        public TransactionRepository(IDbConnectionFactory connectionFactory, ILoggingService loggingService)
         {
             _connectionFactory = connectionFactory;
+            _loggingService = loggingService;
         }
 
-        public async Task<IEnumerable<TransactionDTO>> GetUserTransactionsAsync(
+        public async Task<DbResponse<List<TransactionViewModel>>> GetUserTransactionsAsync(
             int userId,
             int portfolioId = 0,
             int assetId = 0,
@@ -27,55 +35,86 @@ namespace Infrastructure.Repositories
             DateTime? fromDate = null,
             DateTime? toDate = null)
         {
-            using var connection = _connectionFactory.CreateConnection();
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
 
-            var parameters = new DynamicParameters();
-            parameters.Add("@UserId", userId);
-            parameters.Add("@PortfolioId", portfolioId);
-            parameters.Add("@AssetId", assetId);
-            parameters.Add("@AssetTypeId", assetTypeId);
-            parameters.Add("@TransactionType", transactionType);
-            parameters.Add("@FromDate", fromDate);
-            parameters.Add("@ToDate", toDate);
+                var parameters = new DynamicParameters();
+                parameters.Add("@UserId", userId);
+                parameters.Add("@PortfolioId", portfolioId);
+                parameters.Add("@AssetId", assetId);
+                parameters.Add("@AssetTypeId", assetTypeId);
+                parameters.Add("@TransactionType", transactionType);
+                parameters.Add("@FromDate", fromDate);
+                parameters.Add("@ToDate", toDate);
 
-            var result = await connection.QueryAsync<TransactionDTO>(
-                "GetUserTransactions",
-                parameters,
-                commandType: CommandType.StoredProcedure);
+                var data = await connection.QueryAsync<TransactionViewModel>(
+                    "GetUserTransactions",
+                    parameters,
+                    commandType: CommandType.StoredProcedure);
 
-            return result;
+                return DbResponse<List<TransactionViewModel>>.SuccessDbResponse(
+                    data.ToList(),
+                    "Transactions fetched successfully"
+                );
+            }
+            catch (Exception ex)
+            {
+                await _loggingService.LogAsync("Failed to fetch Transactions", Core.Enums.Enum.LogLevel.Error, "TransactionRepository.GetUserTransactionsAsync", ex, new Dictionary<string, object>
+                {
+                    { "UserId", userId },
+                    { "PortfolioId", portfolioId },
+                    { "AssetId", assetId },
+                    { "AssetTypeId", assetTypeId },
+                    { "TransactionType", transactionType },
+                    { "FromDate", fromDate },
+                    { "ToDate", toDate }
+                });
+                return DbResponse<List<TransactionViewModel>>.FailureDbResponse(
+                    new List<TransactionViewModel>(),
+                    new List<string> { "Failed to fetch Transactions." },
+                    "Exception occurred while fetching Transactions"
+                );
+            }
         }
 
-        public async Task<IEnumerable<TransactionDTO>> GetStockTransactionsAsync(int userId, int portfolioId = 0)
+        public async Task<DbResponse<int>> InsertTransaction(Transaction transaction)
         {
-            return await GetUserTransactionsAsync(userId, portfolioId, assetTypeId: 1);
-        }
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                var parameters = new DynamicParameters();
+                parameters.Add("@PortfolioId", transaction.PortfolioId);
+                parameters.Add("@AssetTypeId", transaction.AssetTypeId);
+                parameters.Add("@AssetId", transaction.AssetId);
+                parameters.Add("@TransactionType", transaction.TransactionType);
+                parameters.Add("@Units", transaction.Units);
+                parameters.Add("@Price", transaction.Price);
+                parameters.Add("@Amount", transaction.Amount);
+                parameters.Add("@TransactionDate", transaction.TransactionDate);
+                parameters.Add("@SourceType", transaction.SourceType);
+                parameters.Add("@SourceId", transaction.SourceId);
 
-        public async Task<IEnumerable<TransactionDTO>> GetMutualFundTransactionsAsync(int userId, int portfolioId = 0)
-        {
-            return await GetUserTransactionsAsync(userId, portfolioId, assetTypeId: 2);
-        }
+                var resultId = await connection.ExecuteScalarAsync<int>(
+                    "InsertTransaction",
+                    parameters,
+                    commandType: CommandType.StoredProcedure);
 
-        public async Task<IEnumerable<TransactionDTO>> GetSIPTransactionsAsync(int userId, int portfolioId = 0)
-        {
-            using var connection = _connectionFactory.CreateConnection();
-
-            var parameters = new DynamicParameters();
-            parameters.Add("@UserId", userId);
-            parameters.Add("@PortfolioId", portfolioId);
-            parameters.Add("@AssetId", 0);
-            parameters.Add("@AssetTypeId", 0);
-            parameters.Add("@TransactionType", 0);
-            parameters.Add("@FromDate", null);
-            parameters.Add("@ToDate", null);
-
-            var result = await connection.QueryAsync<TransactionDTO>(
-                "GetUserTransactions",
-                parameters,
-                commandType: CommandType.StoredProcedure);
-
-            // Filter for SIP transactions only
-            return result.Where(t => t.SourceType == "SIP");
+                return DbResponse<int>.SuccessDbResponse(
+                    resultId,
+                    "Transaction inserted successfully"
+                );
+            }
+            catch (Exception ex)
+            {
+                await _loggingService.LogAsync("Failed to insert Transaction", Core.Enums.Enum.LogLevel.Error, "TransactionRepository.InsertTransaction", ex, new Dictionary<string, object>
+                {
+                    { "PortfolioId", transaction?.PortfolioId },
+                    { "AssetId", transaction?.AssetId },
+                    { "TransactionType", transaction?.TransactionType }
+                });
+                return DbResponse<int>.FailureDbResponse(0, new List<string> { "Failed to insert Transaction." }, "Exception occurred");
+            }
         }
     }
 }

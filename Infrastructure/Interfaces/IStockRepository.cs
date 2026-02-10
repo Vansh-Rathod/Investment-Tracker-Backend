@@ -1,0 +1,15 @@
+using Core.CommonModels;
+using Core.Entities;
+using Core.ViewModels;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using static Core.Enums.Enum;
+
+namespace Infrastructure.Interfaces
+{
+    public interface IStockRepository
+    {
+        Task<DbResponse<List<StockViewModel>>> GetStocks(int stockId = 0, int page = 1, int pageSize = 20, string searchText = "", string sortColumn = "StockName", string sortOrder = "ASC", bool? isEtf = null, int exchangeId = 0);
+        Task<DbResponse<int>> InsertUpdateDeleteStock(Stock stock, OperationType operationType);
+    }
+}

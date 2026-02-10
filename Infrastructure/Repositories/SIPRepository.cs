@@ -1,124 +1,111 @@
 using Core.DTOs;
+using Core.CommonModels;
 using Dapper;
+using GenericServices.Interfaces;
 using Infrastructure.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
+using Core.ViewModels;
+
+using Core.Entities;
+using static Core.Enums.Enum;
 
 namespace Infrastructure.Repositories
 {
     public class SIPRepository : ISIPRepository
     {
         private readonly IDbConnectionFactory _connectionFactory;
+        private readonly ILoggingService _loggingService;
 
-        public SIPRepository(IDbConnectionFactory connectionFactory)
+        public SIPRepository(IDbConnectionFactory connectionFactory, ILoggingService loggingService)
         {
             _connectionFactory = connectionFactory;
+            _loggingService = loggingService;
         }
 
-        public async Task<IEnumerable<SIPDTO>> GetUserSIPsAsync(int userId, int sipId = 0, int portfolioId = 0, int sipStatus = 0, int portfolioType = 0)
+        public async Task<DbResponse<List<SIPViewModel>>> GetUserSIPsAsync(int userId, int sipId = 0, int portfolioId = 0, int sipStatus = 0, int portfolioType = 0)
         {
-            using var connection = _connectionFactory.CreateConnection();
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
 
-            var parameters = new DynamicParameters();
-            parameters.Add("@UserId", userId);
-            parameters.Add("@SipId", sipId);
-            parameters.Add("@PortfolioId", portfolioId);
-            parameters.Add("@SipStatus", sipStatus);
-            parameters.Add("@PortfolioType", portfolioType);
+                var parameters = new DynamicParameters();
+                parameters.Add("@UserId", userId);
+                parameters.Add("@SipId", sipId);
+                parameters.Add("@PortfolioId", portfolioId);
+                parameters.Add("@SipStatus", sipStatus);
+                parameters.Add("@PortfolioType", portfolioType);
 
-            var result = await connection.QueryAsync<SIPDTO>(
-                "GetUserSIPs",
-                parameters,
-                commandType: CommandType.StoredProcedure);
+                var data = await connection.QueryAsync<SIPViewModel>(
+                    "GetUserSIPs",
+                    parameters,
+                    commandType: CommandType.StoredProcedure);
 
-            return result;
+                return DbResponse<List<SIPViewModel>>.SuccessDbResponse(
+                    data.ToList(),
+                    "SIPs fetched successfully"
+                );
+            }
+            catch (Exception ex)
+            {
+                await _loggingService.LogAsync("Failed to fetch SIPs", Core.Enums.Enum.LogLevel.Error, "SIPRepository.GetUserSIPsAsync", ex, new Dictionary<string, object>
+                {
+                    { "UserId", userId },
+                    { "SipId", sipId },
+                    { "PortfolioId", portfolioId },
+                    { "SipStatus", sipStatus },
+                    { "PortfolioType", portfolioType }
+                });
+                return DbResponse<List<SIPViewModel>>.FailureDbResponse(
+                    new List<SIPViewModel>(),
+                    new List<string> { "Failed to fetch SIPs." },
+                    "Exception occurred while fetching SIPs"
+                );
+            }
         }
 
-        public async Task<SIPDTO?> GetSIPByIdAsync(int sipId, int userId)
+        public async Task<DbResponse<int>> InsertUpdateDeleteSIP(SIP sip, OperationType operationType)
         {
-            var sips = await GetUserSIPsAsync(userId, sipId);
-            return sips.FirstOrDefault();
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                var parameters = new DynamicParameters();
+                parameters.Add("@OperationType", (int)operationType);
+                parameters.Add("@SipId", sip.SipId);
+                parameters.Add("@PortfolioId", sip.PortfolioId);
+                parameters.Add("@AssetTypeId", sip.AssetTypeId);
+                parameters.Add("@AssetId", sip.AssetId);
+                parameters.Add("@SipAmount", sip.SipAmount);
+                parameters.Add("@Frequency", sip.Frequency);
+                parameters.Add("@SipDate", sip.SipDate);
+                parameters.Add("@StartDate", sip.StartDate);
+                parameters.Add("@EndDate", sip.EndDate);
+                parameters.Add("@Status", sip.Status);
+
+                var resultId = await connection.ExecuteScalarAsync<int>(
+                    "InsertUpdateDeleteSIP",
+                    parameters,
+                    commandType: CommandType.StoredProcedure);
+
+                return DbResponse<int>.SuccessDbResponse(
+                    resultId,
+                    $"SIP {operationType} operation successful"
+                );
+            }
+            catch (Exception ex)
+            {
+                await _loggingService.LogAsync("Failed to perform SIP operation", Core.Enums.Enum.LogLevel.Error, "SIPRepository.InsertUpdateDeleteSIP", ex, new Dictionary<string, object>
+                {
+                    { "OperationType", operationType },
+                    { "SipId", sip?.SipId },
+                    { "PortfolioId", sip?.PortfolioId }
+                });
+                return DbResponse<int>.FailureDbResponse(0, new List<string> { "Failed to perform SIP operation." }, "Exception occurred");
+            }
         }
 
-        public async Task<int> CreateSIPAsync(int userId, CreateSIPRequest request)
-        {
-            using var connection = _connectionFactory.CreateConnection();
-
-            var parameters = new DynamicParameters();
-            parameters.Add("@SipId", null);
-            parameters.Add("@PortfolioId", request.PortfolioId);
-            parameters.Add("@AssetTypeId", request.AssetTypeId);
-            parameters.Add("@AssetId", request.AssetId);
-            parameters.Add("@SipAmount", request.SipAmount);
-            parameters.Add("@Frequency", request.Frequency);
-            parameters.Add("@SipDate", request.SipDate);
-            parameters.Add("@StartDate", request.StartDate);
-            parameters.Add("@EndDate", request.EndDate);
-            parameters.Add("@Status", 1); // Active by default
-            parameters.Add("@Operation", "INSERT");
-
-            var sipId = await connection.ExecuteScalarAsync<int>(
-                "InsertUpdateDeleteSIP",
-                parameters,
-                commandType: CommandType.StoredProcedure);
-
-            return sipId;
-        }
-
-        public async Task<bool> UpdateSIPAsync(int userId, UpdateSIPRequest request)
-        {
-            using var connection = _connectionFactory.CreateConnection();
-
-            var parameters = new DynamicParameters();
-            parameters.Add("@SipId", request.SipId);
-            parameters.Add("@SipAmount", request.SipAmount);
-            parameters.Add("@Frequency", request.Frequency);
-            parameters.Add("@SipDate", request.SipDate);
-            parameters.Add("@EndDate", request.EndDate);
-            parameters.Add("@Operation", "UPDATE");
-
-            var result = await connection.ExecuteAsync(
-                "InsertUpdateDeleteSIP",
-                parameters,
-                commandType: CommandType.StoredProcedure);
-
-            return result > 0;
-        }
-
-        public async Task<bool> UpdateSIPStatusAsync(int userId, int sipId, int status)
-        {
-            using var connection = _connectionFactory.CreateConnection();
-
-            var parameters = new DynamicParameters();
-            parameters.Add("@SipId", sipId);
-            parameters.Add("@Status", status);
-            parameters.Add("@Operation", "UPDATE_STATUS");
-
-            var result = await connection.ExecuteAsync(
-                "InsertUpdateDeleteSIP",
-                parameters,
-                commandType: CommandType.StoredProcedure);
-
-            return result > 0;
-        }
-
-        public async Task<bool> DeleteSIPAsync(int sipId, int userId)
-        {
-            using var connection = _connectionFactory.CreateConnection();
-
-            var parameters = new DynamicParameters();
-            parameters.Add("@SipId", sipId);
-            parameters.Add("@Operation", "DELETE");
-
-            var result = await connection.ExecuteAsync(
-                "InsertUpdateDeleteSIP",
-                parameters,
-                commandType: CommandType.StoredProcedure);
-
-            return result > 0;
-        }
     }
 }

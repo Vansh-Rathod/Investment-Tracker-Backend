@@ -20,12 +20,21 @@ namespace EquityTrackerWebAPI.Controllers
     {
         private readonly IUserEquityRepository _userEquityRepository;
         private readonly IUserRepository _userRepository;
+        private readonly IUserEquityRepository _userEquityRepository;
+        private readonly IUserRepository _userRepository;
+        private readonly IStockRepository _stockRepository;
         private readonly ILoggingService _loggingService;
 
         public StockController( IUserEquityRepository userEquityRepository, IUserRepository userRepository, ILoggingService loggingService )
         {
             _userEquityRepository = userEquityRepository;
             _userRepository = userRepository;
+            _loggingService = loggingService;
+        public StockController( IUserEquityRepository userEquityRepository, IUserRepository userRepository, IStockRepository stockRepository, ILoggingService loggingService )
+        {
+            _userEquityRepository = userEquityRepository;
+            _userRepository = userRepository;
+            _stockRepository = stockRepository;
             _loggingService = loggingService;
         }
 
@@ -309,5 +318,34 @@ namespace EquityTrackerWebAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Get available market stocks
+        /// </summary>
+        [HttpGet("market")]
+        public async Task<APIResponse<List<StockViewModel>>> GetMarketStocks(
+            [FromQuery] int stockId = 0,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string searchText = "",
+            [FromQuery] string sortColumn = "StockName",
+            [FromQuery] string sortOrder = "ASC",
+            [FromQuery] bool? isEtf = null,
+            [FromQuery] int exchangeId = 0)
+        {
+            try
+            {
+                var result = await _stockRepository.GetStocks(stockId, page, pageSize, searchText, sortColumn, sortOrder, isEtf, exchangeId);
+                if (result.Success)
+                {
+                    return APIResponse<List<StockViewModel>>.SuccessResponse(result.Data, result.Message);
+                }
+                return APIResponse<List<StockViewModel>>.FailureResponse(result.Errors, result.Message);
+            }
+            catch (Exception ex)
+            {
+                await _loggingService.LogAsync("Exception occurred while fetching market stocks", Core.Enums.Enum.LogLevel.Error, "StockController.GetMarketStocks", ex, null);
+                return APIResponse<List<StockViewModel>>.FailureResponse(new List<string> { "Internal Server Error" }, "An error occurred while fetching market stocks.");
+            }
+        }
     }
 }

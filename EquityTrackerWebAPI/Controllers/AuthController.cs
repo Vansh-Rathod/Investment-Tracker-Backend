@@ -50,9 +50,9 @@ namespace EquityTrackerWebAPI.Controllers
 
                 // Step 2: Check if user exists
                 var userResult = await _userRepository.GetUserByEmail(model.Email.Trim(), true, false);
-                if(!userResult.Success || userResult.Data == null)
-                {
 
+                if(!userResult.Success || userResult.Data == null || !userResult.Data.Any())
+                {
                     return APIResponse<object>.FailureResponse(
                         new List<string> { "Validation Failed" },
                         "Invalid email or password"
@@ -60,8 +60,10 @@ namespace EquityTrackerWebAPI.Controllers
 
                 }
 
+                var userData = userResult.Data.FirstOrDefault();
+
                 // Step 3: Check password
-                bool isPasswordValid = BCrypt.Net.BCrypt.Verify(model.Password.Trim(), userResult.Data.PasswordHash);
+                bool isPasswordValid = BCrypt.Net.BCrypt.Verify(model.Password.Trim(), userData.PasswordHash);
                 if(!isPasswordValid)
                 {
                     return APIResponse<object>.FailureResponse(
@@ -70,102 +72,27 @@ namespace EquityTrackerWebAPI.Controllers
                     );
                 }
 
-                //// Step 5: Check if 2FA is enabled
-                //if(userResult.Data.Is2FAEnabled)
-                //{
-                //    // Clear old OTPs
-                //    await _userOtpRepository.DeleteAllOtpsByUserIdAsync(userResult.Data.Id);
-
-                //    // Generate new OTP
-                //    string otpCode = GenerateOtpCode();
-
-                //    // Save OTP to DB
-                //    var otpModel = new UserOTPModel
-                //    {
-                //        UserId = userResult.Data.Id,
-                //        OtpCode = otpCode,
-                //        ExpiryTime = DateTime.UtcNow.AddMinutes(10),
-                //        AttemptCount = 0
-                //    };
-
-                //    await _userOtpRepository.SaveOtpAsync(otpModel);
-
-                //    // Send OTP via email
-                //    //await _emailService.SendEmailAsync(userResult.Data.Email, "2FA Requests OTP For Login", GenerateBody(otpCode, userResult.Data.FullName));
-
-                //    var htmlBodyResult = _emailTemplateService.GenerateOTPVerificationEmailTemplate(otpCode, userResult.Data.FullName);
-                //    await _emailService.SendEmailAsync(userResult.Data.Email, "2FA Requests OTP For Login", htmlBodyResult.Data, null);
-
-                //    var twoFAResposneData = new
-                //    {
-                //        Status = "2FA_REQUIRED",
-                //        Message = "Two-factor authentication is enabled. Please verify using the OTP sent to your email.",
-                //        UserId = userResult.Data.Id
-                //    };
-
-                //    //return Ok(new APIResponse { Status = 302, Message = "2FA required", Data = twoFAResposneData });
-
-                //    //Return 2FA - required response
-                //    return CommonResponse<object>.SuccessResponse(
-                //        new
-                //        {
-                //            Status = "2FA_REQUIRED",
-                //            Message = "Two-factor authentication is enabled. Please verify using the OTP sent to your email.",
-                //            UserId = userResult.Data.Id
-                //        },
-                //        "2FA required"
-                //    );
-
-                //}
-
                 // Step 4: Update Last Login
                 User user = new User()
                 {
-                    Name = userResult.Data.Name,
-                    Email = userResult.Data.Email,
-                    PhoneNumber = userResult.Data.PhoneNumber,
+                    Name = userData.Name,
+                    Email = userData.Email,
+                    PhoneNumber = userData.PhoneNumber,
                     LastLogin = DateTime.UtcNow,
-                    IsActive = userResult.Data.IsActive,
+                    IsActive = userData.IsActive,
                 };
 
-                var updateResult = await _userRepository.InsertUpdateDeleteUser(user, Core.Enums.Enum.OperationType.UPDATE, userResult.Data.Id);
+                var updateResult = await _userRepository.InsertUpdateDeleteUser(user, Core.Enums.Enum.OperationType.UPDATE, userData.Id);
                 //if(!updateResult.Success && updateResult.Data <= 0)
                 //{
                     
                 //}
 
                 // Step 5: Generate token
-                var jwtToken = _jwtTokenService.GenerateJwtToken(userResult.Data);
+                var jwtToken = _jwtTokenService.GenerateJwtToken(userData);
                 var refreshToken = _jwtTokenService.GenerateRefreshToken();
 
-                //// Step 6: Get all existing refresh tokens by userId
-                //var existingRefreshTokensResult = await _refreshTokenRepository.GetRefreshTokensByUserIdAsync(userResult.Data.Id);
-
-                //if(existingRefreshTokensResult.Success && existingRefreshTokensResult.Data.Items.Any())
-                //{
-                //    // Step 7: Revoke old tokens
-                //    foreach(var token in existingRefreshTokensResult.Data.Items.Where(t => !t.IsRevoked))
-                //    {
-                //        token.IsRevoked = true;
-                //        //token.ExpiresAt = DateTime.UtcNow; // Optional: expire immediately
-                //        await _refreshTokenRepository.UpdateRefreshTokenAsync(token);
-                //    }
-                //}
-
-                //// Step 8: Save the refreh token in the database
-                //await _refreshTokenRepository.SaveRefreshTokenAsync(new RefreshTokenModel
-                //{
-                //    RefreshToken = refreshToken,
-                //    UserId = userResult.Data.Id,
-                //    CreatedAt = DateTime.UtcNow,
-                //    ExpiresAt = DateTime.UtcNow.AddDays(Convert.ToDouble(_configuration["Jwt:RefreshTokenExpireDays"]))
-                //});
-
-                //// Step 10: Update last login timestamp
-                //userResult.Data.LastLogin = DateTime.UtcNow;
-                //await _userRepository.UpdateUserInDBAsync(userResult.Data);
-
-                var userLastLogin = userResult.Data.LastLogin == null ? DateTime.UtcNow : userResult.Data.LastLogin;
+                var userLastLogin = userData.LastLogin == null ? DateTime.UtcNow : userData.LastLogin;
 
                 var responseData = new
                 {
@@ -173,10 +100,10 @@ namespace EquityTrackerWebAPI.Controllers
                     RefreshToken = refreshToken,
                     User = new
                     {
-                        userResult.Data.Id,
-                        userResult.Data.Name,
-                        userResult.Data.Email,
-                        userResult.Data.PhoneNumber,
+                        userData.Id,
+                        userData.Name,
+                        userData.Email,
+                        userData.PhoneNumber,
                         userLastLogin
                     }
                 };

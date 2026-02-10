@@ -37,7 +37,7 @@ namespace Infrastructure.Repositories
                 parameters.Add("@Page", page);
                 parameters.Add("@PageSize", pageSize);
                 parameters.Add("@SearchText", searchText ?? "");
-                parameters.Add("@SortOrder", sortOrder ?? "ASC");
+                parameters.Add("@SortOrder", sortOrder ?? "DESC");
                 parameters.Add("@SortField", sortField ?? "CreatedDate");
 
                 var data = await connection.QueryAsync<UserViewModel>(
@@ -52,7 +52,17 @@ namespace Infrastructure.Repositories
             }
             catch(Exception ex)
             {
-                _loggingService.LogAsync("Failed to fetch users", Core.Enums.Enum.LogLevel.Error, "UserRepository.GetUsers", ex, null);
+                await _loggingService.LogAsync("Failed to fetch users", Core.Enums.Enum.LogLevel.Error, "UserRepository.GetUsers", ex, new Dictionary<string, object>
+                {
+                    { "UserId", userId },
+                    { "IsActive", isActive },
+                    { "IsDeleted", isDeleted },
+                    { "Page", page },
+                    { "PageSize", pageSize },
+                    { "SearchText", searchText },
+                    { "SortOrder", sortOrder },
+                    { "SortField", sortField }
+                });
 
                 return DbResponse<List<UserViewModel>>.FailureDbResponse(
                     new List<UserViewModel>(),
@@ -62,7 +72,7 @@ namespace Infrastructure.Repositories
             }
         }
 
-        public async Task<DbResponse<UserViewModel>> GetUserByEmail( string email, bool isActive = true, bool isDeleted = false )
+        public async Task<DbResponse<List<UserViewModel>>> GetUserByEmail( string email, bool isActive = true, bool isDeleted = false )
         {
             try
             {
@@ -73,31 +83,36 @@ namespace Infrastructure.Repositories
                 parameters.Add("@IsActive", isActive);
                 parameters.Add("@IsDeleted", isDeleted);
 
-                var data = await connection.QueryFirstOrDefaultAsync<UserViewModel>(
+                var data = await connection.QueryAsync<UserViewModel>(
                     "GetUserByEmail",
                     parameters,
                     commandType: CommandType.StoredProcedure);
 
-                if(data == null)
+                if(!data.Any())
                 {
-                    return DbResponse<UserViewModel>.FailureDbResponse(
-                   data,
+                    return DbResponse<List<UserViewModel>>.FailureDbResponse(
+                    data.ToList(),
                     new List<string> { $"User not found by email: {email}" },
                     $"User not found by email: {email}"
                     );
                 }
 
-                return DbResponse<UserViewModel>.SuccessDbResponse(
-                   data,
+                return DbResponse<List<UserViewModel>>.SuccessDbResponse(
+                   data.ToList(),
                     "User fetched successfully by email"
                 );
             }
             catch(Exception ex)
             {
-                _loggingService.LogAsync("Exception occurred while fetching user by email", Core.Enums.Enum.LogLevel.Error, "UserRepository.GetUserByEmail", ex, new Dictionary<string, object> { { "Email", email } });
+                await _loggingService.LogAsync("Exception occurred while fetching user by email", Core.Enums.Enum.LogLevel.Error, "UserRepository.GetUserByEmail", ex, new Dictionary<string, object> 
+                { 
+                    { "Email", email },
+                    { "IsActive", isActive },
+                    { "IsDeleted", isDeleted }
+                });
 
-                return DbResponse<UserViewModel>.FailureDbResponse(
-                    new UserViewModel(),
+                return DbResponse<List<UserViewModel>>.FailureDbResponse(
+                    new List<UserViewModel>(),
                     new List<string> { "Failed to fetch user by email" },
                     "Exception occurred while fetching user by email"
                 );
