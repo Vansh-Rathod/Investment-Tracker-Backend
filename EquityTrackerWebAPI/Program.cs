@@ -15,13 +15,20 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-// Add CORS policy
+// Add CORS policy (localhost and 127.0.0.1 - browser treats these as different origins)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
         policy =>
         {
-            policy.WithOrigins("http://localhost:3000", "http://localhost:5173") // Next.js and Vite
+            policy.WithOrigins(
+                      "http://localhost:3000",
+                      "http://localhost:3001",
+                      "http://localhost:5173",
+                      "http://127.0.0.1:3000",
+                      "http://127.0.0.1:3001",
+                      "http://127.0.0.1:5173"
+                  )
                   .AllowAnyMethod()
                   .AllowAnyHeader()
                   .AllowCredentials();
@@ -41,7 +48,7 @@ builder.Services.AddTransient<JwtTokenService>();
 
 // ---------------------------------------------- Repositories ----------------------------------------------
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IUserEquityRepository, UserEquityRepository>();
+//builder.Services.AddScoped<IUserEquityRepository, UserEquityRepository>();
 builder.Services.AddScoped<IPortfolioRepository, PortfolioRepository>();
 builder.Services.AddScoped<ISIPRepository, SIPRepository>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
@@ -53,6 +60,8 @@ builder.Services.AddScoped<IExchangeRepository, ExchangeRepository>();
 builder.Services.AddScoped<IMutualFundRepository, MutualFundRepository>();
 builder.Services.AddScoped<IStockRepository, StockRepository>();
 builder.Services.AddScoped<ISipExecutionRepository, SipExecutionRepository>();
+builder.Services.AddScoped<ISettingsRepository, SettingsRepository>();
+builder.Services.AddScoped<EquityTrackerWebAPI.Services.IExportService, EquityTrackerWebAPI.Services.ExportService>();
 
 // Add services to the container.
 

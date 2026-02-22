@@ -50,7 +50,7 @@ namespace Infrastructure.Repositories
             }
             catch(Exception ex)
             {
-                await _loggingService.LogAsync("Failed to fetch Portfolios", Core.Enums.Enum.LogLevel.Error, "PortfolioRepository.GetUserPortfoliosAsync", ex, new Dictionary<string, object>
+                await _loggingService.LogAsync("Failed to fetch Portfolios", Core.Enums.Enum.LogLevel.Error, "PortfolioRepository.GetUserPortfoliosAsync", ex.Message, new Dictionary<string, object>
                 {
                     { "UserId", userId },
                     { "PortfolioId", portfolioId },
@@ -88,7 +88,7 @@ namespace Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Failed to perform Portfolio operation", Core.Enums.Enum.LogLevel.Error, "PortfolioRepository.InsertUpdateDeletePortfolio", ex, new Dictionary<string, object>
+                await _loggingService.LogAsync("Failed to perform Portfolio operation", Core.Enums.Enum.LogLevel.Error, "PortfolioRepository.InsertUpdateDeletePortfolio", ex.Message, new Dictionary<string, object>
                 {
                     { "OperationType", operationType },
                     { "PortfolioId", portfolio?.PortfolioId },

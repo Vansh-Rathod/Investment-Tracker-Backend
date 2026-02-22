@@ -54,7 +54,7 @@ namespace Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Failed to fetch Mutual Funds", Core.Enums.Enum.LogLevel.Error, "MutualFundRepository.GetMutualFunds", ex, new Dictionary<string, object>
+                await _loggingService.LogAsync("Failed to fetch Mutual Funds", Core.Enums.Enum.LogLevel.Error, "MutualFundRepository.GetMutualFunds", ex.Message, new Dictionary<string, object>
                 {
                     { "FundId", fundId },
                     { "AMCId", amcId },
@@ -101,13 +101,44 @@ namespace Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Failed to perform Mutual Fund operation", Core.Enums.Enum.LogLevel.Error, "MutualFundRepository.InsertUpdateDeleteMutualFund", ex, new Dictionary<string, object>
+                await _loggingService.LogAsync("Failed to perform Mutual Fund operation", Core.Enums.Enum.LogLevel.Error, "MutualFundRepository.InsertUpdateDeleteMutualFund", ex.Message, new Dictionary<string, object>
                 {
                     { "OperationType", operationType },
                     { "FundId", mutualFund?.FundId },
                     { "FundName", mutualFund?.FundName }
                 });
                 return DbResponse<int>.FailureDbResponse(0, new List<string> { "Failed to perform Mutual Fund operation." }, "Exception occurred");
+            }
+        }
+        public async Task<DbResponse<List<MutualFundHoldingViewModel>>> GetMutualFundHoldings(int userId)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                var parameters = new DynamicParameters();
+                parameters.Add("@UserId", userId);
+
+                var data = await connection.QueryAsync<MutualFundHoldingViewModel>(
+                    "GetMutualFundHoldings",
+                    parameters,
+                    commandType: CommandType.StoredProcedure);
+
+                return DbResponse<List<MutualFundHoldingViewModel>>.SuccessDbResponse(
+                    data.ToList(),
+                    "Mutual Fund holdings fetched successfully"
+                );
+            }
+            catch (Exception ex)
+            {
+                await _loggingService.LogAsync("Failed to fetch Mutual Fund holdings", Core.Enums.Enum.LogLevel.Error, "MutualFundRepository.GetMutualFundHoldings", ex.Message, new Dictionary<string, object>
+                {
+                    { "UserId", userId }
+                });
+                return DbResponse<List<MutualFundHoldingViewModel>>.FailureDbResponse(
+                    new List<MutualFundHoldingViewModel>(),
+                    new List<string> { "Failed to fetch Mutual Fund holdings." },
+                    "Exception occurred while fetching holdings"
+                );
             }
         }
     }

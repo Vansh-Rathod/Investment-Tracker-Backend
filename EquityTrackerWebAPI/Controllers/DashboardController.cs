@@ -26,7 +26,7 @@ namespace EquityTrackerWebAPI.Controllers
         /// Get dashboard summary with overall portfolio metrics
         /// </summary>
         [HttpGet("summary")]
-        public async Task<APIResponse<DashboardSummaryViewModel>> GetSummary(int portfolioId = 0)
+        public async Task<APIResponse<DashboardSummaryViewModel>> GetSummary()
         {
             try
             {
@@ -39,7 +39,7 @@ namespace EquityTrackerWebAPI.Controllers
                     );
                 }
 
-                var summary = await _dashboardRepository.GetDashboardSummaryAsync(userId, portfolioId);
+                var summary = await _dashboardRepository.GetDashboardSummaryAsync(userId);
 
                 return APIResponse<DashboardSummaryViewModel>.SuccessResponse(
                     summary.Data.FirstOrDefault(),
@@ -52,7 +52,7 @@ namespace EquityTrackerWebAPI.Controllers
                     "Error fetching dashboard summary",
                     Core.Enums.Enum.LogLevel.Error,
                     "DashboardController.GetSummary",
-                    ex,
+                    ex.Message,
                     null
                 );
 
@@ -67,7 +67,7 @@ namespace EquityTrackerWebAPI.Controllers
         /// Get asset allocation (Stocks vs Mutual Funds)
         /// </summary>
         [HttpGet("allocation")]
-        public async Task<APIResponse<List<AllocationDataViewModel>>> GetAssetAllocation(int portfolioId = 0)
+        public async Task<APIResponse<List<AllocationDataViewModel>>> GetAssetAllocation()
         {
             try
             {
@@ -80,7 +80,7 @@ namespace EquityTrackerWebAPI.Controllers
                     );
                 }
 
-                var allocation = await _dashboardRepository.GetAssetAllocationAsync(userId, portfolioId);
+                var allocation = await _dashboardRepository.GetAssetAllocationAsync(userId);
 
                 return APIResponse<List<AllocationDataViewModel>>.SuccessResponse(
                     allocation.Data,
@@ -93,7 +93,7 @@ namespace EquityTrackerWebAPI.Controllers
                     "Error fetching asset allocation",
                     Core.Enums.Enum.LogLevel.Error,
                     "DashboardController.GetAssetAllocation",
-                    ex,
+                    ex.Message,
                     null
                 );
 
@@ -108,7 +108,7 @@ namespace EquityTrackerWebAPI.Controllers
         /// Get sector-wise allocation for stocks
         /// </summary>
         [HttpGet("stocks/sector-allocation")]
-        public async Task<APIResponse<List<AllocationDataViewModel>>> GetSectorAllocation(int portfolioId = 0)
+        public async Task<APIResponse<List<AllocationDataViewModel>>> GetSectorAllocation()
         {
             try
             {
@@ -121,7 +121,7 @@ namespace EquityTrackerWebAPI.Controllers
                     );
                 }
 
-                var allocation = await _dashboardRepository.GetSectorAllocationAsync(userId, portfolioId);
+                var allocation = await _dashboardRepository.GetSectorAllocationAsync(userId);
 
                 return APIResponse<List<AllocationDataViewModel>>.SuccessResponse(
                     allocation.Data,
@@ -134,7 +134,7 @@ namespace EquityTrackerWebAPI.Controllers
                     "Error fetching sector allocation",
                     Core.Enums.Enum.LogLevel.Error,
                     "DashboardController.GetSectorAllocation",
-                    ex,
+                    ex.Message,
                     null
                 );
 
@@ -149,7 +149,7 @@ namespace EquityTrackerWebAPI.Controllers
         /// Get category-wise allocation for mutual funds
         /// </summary>
         [HttpGet("mutual-funds/category-allocation")]
-        public async Task<APIResponse<List<AllocationDataViewModel>>> GetCategoryAllocation(int portfolioId = 0)
+        public async Task<APIResponse<List<AllocationDataViewModel>>> GetCategoryAllocation()
         {
             try
             {
@@ -162,7 +162,7 @@ namespace EquityTrackerWebAPI.Controllers
                     );
                 }
 
-                var allocation = await _dashboardRepository.GetCategoryAllocationAsync(userId, portfolioId);
+                var allocation = await _dashboardRepository.GetCategoryAllocationAsync(userId);
 
                 return APIResponse<List<AllocationDataViewModel>>.SuccessResponse(
                     allocation.Data,
@@ -175,7 +175,7 @@ namespace EquityTrackerWebAPI.Controllers
                     "Error fetching category allocation",
                     Core.Enums.Enum.LogLevel.Error,
                     "DashboardController.GetCategoryAllocation",
-                    ex,
+                    ex.Message,
                     null
                 );
 
@@ -190,7 +190,7 @@ namespace EquityTrackerWebAPI.Controllers
         /// Get AMC-wise allocation for mutual funds
         /// </summary>
         [HttpGet("mutual-funds/amc-allocation")]
-        public async Task<APIResponse<List<AllocationDataViewModel>>> GetAMCAllocation(int portfolioId = 0)
+        public async Task<APIResponse<List<AllocationDataViewModel>>> GetAMCAllocation()
         {
             try
             {
@@ -203,7 +203,7 @@ namespace EquityTrackerWebAPI.Controllers
                     );
                 }
 
-                var allocation = await _dashboardRepository.GetAMCAllocationAsync(userId, portfolioId);
+                var allocation = await _dashboardRepository.GetAMCAllocationAsync(userId);
 
                 return APIResponse<List<AllocationDataViewModel>>.SuccessResponse(
                     allocation.Data,
@@ -216,7 +216,7 @@ namespace EquityTrackerWebAPI.Controllers
                     "Error fetching AMC allocation",
                     Core.Enums.Enum.LogLevel.Error,
                     "DashboardController.GetAMCAllocation",
-                    ex,
+                    ex.Message,
                     null
                 );
 
@@ -231,7 +231,7 @@ namespace EquityTrackerWebAPI.Controllers
         /// Get portfolio performance over time
         /// </summary>
         [HttpGet("performance")]
-        public async Task<APIResponse<List<PerformanceDataViewModel>>> GetPerformance(int portfolioId = 0, int months = 6)
+        public async Task<APIResponse<List<PerformanceDataViewModel>>> GetPerformance(int months = 6)
         {
             try
             {
@@ -244,7 +244,7 @@ namespace EquityTrackerWebAPI.Controllers
                     );
                 }
 
-                var performance = await _dashboardRepository.GetPortfolioPerformanceAsync(userId, portfolioId, months);
+                var performance = await _dashboardRepository.GetPortfolioPerformanceAsync(userId, months);
 
                 return APIResponse<List<PerformanceDataViewModel>>.SuccessResponse(
                     performance.Data,
@@ -257,7 +257,7 @@ namespace EquityTrackerWebAPI.Controllers
                     "Error fetching portfolio performance",
                     Core.Enums.Enum.LogLevel.Error,
                     "DashboardController.GetPerformance",
-                    ex,
+                    ex.Message,
                     null
                 );
 

@@ -23,7 +23,7 @@ namespace Infrastructure.Repositories
             _loggingService = loggingService;
         }
 
-        public async Task<DbResponse<List<DashboardSummaryViewModel>>> GetDashboardSummaryAsync(int userId, int portfolioId = 0)
+        public async Task<DbResponse<List<DashboardSummaryViewModel>>> GetDashboardSummaryAsync(int userId)
         {
             try
             {
@@ -31,7 +31,6 @@ namespace Infrastructure.Repositories
 
                 var parameters = new DynamicParameters();
                 parameters.Add("@UserId", userId);
-                parameters.Add("@PortfolioId", portfolioId);
 
                 var result = await connection.QueryFirstOrDefaultAsync<DashboardSummaryViewModel>(
                     "GetDashboardSummary",
@@ -47,10 +46,9 @@ namespace Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Failed to fetch Dashboard summary", Core.Enums.Enum.LogLevel.Error, "DashboardRepository.GetDashboardSummaryAsync", ex, new Dictionary<string, object>
+                await _loggingService.LogAsync("Failed to fetch Dashboard summary", Core.Enums.Enum.LogLevel.Error, "DashboardRepository.GetDashboardSummaryAsync", ex.Message, new Dictionary<string, object>
                 {
-                    { "UserId", userId },
-                    { "PortfolioId", portfolioId }
+                    { "UserId", userId }
                 });
                 return DbResponse<List<DashboardSummaryViewModel>>.FailureDbResponse(
                     new List<DashboardSummaryViewModel>(),
@@ -60,7 +58,7 @@ namespace Infrastructure.Repositories
             }
         }
 
-        public async Task<DbResponse<List<AllocationDataViewModel>>> GetAssetAllocationAsync(int userId, int portfolioId = 0)
+        public async Task<DbResponse<List<AllocationDataViewModel>>> GetAssetAllocationAsync(int userId)
         {
             try
             {
@@ -68,7 +66,6 @@ namespace Infrastructure.Repositories
 
                 var parameters = new DynamicParameters();
                 parameters.Add("@UserId", userId);
-                parameters.Add("@PortfolioId", portfolioId);
 
                 var data = await connection.QueryAsync<AllocationDataViewModel>(
                     "GetAssetAllocation",
@@ -82,10 +79,9 @@ namespace Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Failed to fetch Asset allocation", Core.Enums.Enum.LogLevel.Error, "DashboardRepository.GetAssetAllocationAsync", ex, new Dictionary<string, object>
+                await _loggingService.LogAsync("Failed to fetch Asset allocation", Core.Enums.Enum.LogLevel.Error, "DashboardRepository.GetAssetAllocationAsync", ex.Message, new Dictionary<string, object>
                 {
-                    { "UserId", userId },
-                    { "PortfolioId", portfolioId }
+                    { "UserId", userId }
                 });
                 return DbResponse<List<AllocationDataViewModel>>.FailureDbResponse(
                     new List<AllocationDataViewModel>(),
@@ -95,7 +91,7 @@ namespace Infrastructure.Repositories
             }
         }
 
-        public async Task<DbResponse<List<AllocationDataViewModel>>> GetSectorAllocationAsync(int userId, int portfolioId = 0)
+        public async Task<DbResponse<List<AllocationDataViewModel>>> GetSectorAllocationAsync(int userId)
         {
             try
             {
@@ -103,7 +99,6 @@ namespace Infrastructure.Repositories
 
                 var parameters = new DynamicParameters();
                 parameters.Add("@UserId", userId);
-                parameters.Add("@PortfolioId", portfolioId);
 
                 var data = await connection.QueryAsync<AllocationDataViewModel>(
                     "GetSectorAllocation",
@@ -117,10 +112,9 @@ namespace Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Failed to fetch Sector allocation", Core.Enums.Enum.LogLevel.Error, "DashboardRepository.GetSectorAllocationAsync", ex, new Dictionary<string, object>
+                await _loggingService.LogAsync("Failed to fetch Sector allocation", Core.Enums.Enum.LogLevel.Error, "DashboardRepository.GetSectorAllocationAsync", ex.Message, new Dictionary<string, object>
                 {
-                    { "UserId", userId },
-                    { "PortfolioId", portfolioId }
+                    { "UserId", userId }
                 });
                 return DbResponse<List<AllocationDataViewModel>>.FailureDbResponse(
                     new List<AllocationDataViewModel>(),
@@ -130,7 +124,7 @@ namespace Infrastructure.Repositories
             }
         }
 
-        public async Task<DbResponse<List<AllocationDataViewModel>>> GetCategoryAllocationAsync(int userId, int portfolioId = 0)
+        public async Task<DbResponse<List<AllocationDataViewModel>>> GetCategoryAllocationAsync(int userId)
         {
             try
             {
@@ -138,7 +132,6 @@ namespace Infrastructure.Repositories
 
                 var parameters = new DynamicParameters();
                 parameters.Add("@UserId", userId);
-                parameters.Add("@PortfolioId", portfolioId);
 
                 var data = await connection.QueryAsync<AllocationDataViewModel>(
                     "GetCategoryAllocation",
@@ -152,10 +145,9 @@ namespace Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Failed to fetch Category allocation", Core.Enums.Enum.LogLevel.Error, "DashboardRepository.GetCategoryAllocationAsync", ex, new Dictionary<string, object>
+                await _loggingService.LogAsync("Failed to fetch Category allocation", Core.Enums.Enum.LogLevel.Error, "DashboardRepository.GetCategoryAllocationAsync", ex.Message, new Dictionary<string, object>
                 {
-                    { "UserId", userId },
-                    { "PortfolioId", portfolioId }
+                    { "UserId", userId }
                 });
                 return DbResponse<List<AllocationDataViewModel>>.FailureDbResponse(
                     new List<AllocationDataViewModel>(),
@@ -165,7 +157,7 @@ namespace Infrastructure.Repositories
             }
         }
 
-        public async Task<DbResponse<List<AllocationDataViewModel>>> GetAMCAllocationAsync(int userId, int portfolioId = 0)
+        public async Task<DbResponse<List<AllocationDataViewModel>>> GetAMCAllocationAsync(int userId)
         {
             try
             {
@@ -173,7 +165,6 @@ namespace Infrastructure.Repositories
 
                 var parameters = new DynamicParameters();
                 parameters.Add("@UserId", userId);
-                parameters.Add("@PortfolioId", portfolioId);
 
                 var data = await connection.QueryAsync<AllocationDataViewModel>(
                     "GetAMCAllocation",
@@ -187,10 +178,9 @@ namespace Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Failed to fetch AMC allocation", Core.Enums.Enum.LogLevel.Error, "DashboardRepository.GetAMCAllocationAsync", ex, new Dictionary<string, object>
+                await _loggingService.LogAsync("Failed to fetch AMC allocation", Core.Enums.Enum.LogLevel.Error, "DashboardRepository.GetAMCAllocationAsync", ex.Message, new Dictionary<string, object>
                 {
-                    { "UserId", userId },
-                    { "PortfolioId", portfolioId }
+                    { "UserId", userId }
                 });
                 return DbResponse<List<AllocationDataViewModel>>.FailureDbResponse(
                     new List<AllocationDataViewModel>(),
@@ -200,7 +190,7 @@ namespace Infrastructure.Repositories
             }
         }
 
-        public async Task<DbResponse<List<PerformanceDataViewModel>>> GetPortfolioPerformanceAsync(int userId, int portfolioId = 0, int months = 6)
+        public async Task<DbResponse<List<PerformanceDataViewModel>>> GetPortfolioPerformanceAsync(int userId, int months = 6)
         {
             try
             {
@@ -208,7 +198,6 @@ namespace Infrastructure.Repositories
 
                 var parameters = new DynamicParameters();
                 parameters.Add("@UserId", userId);
-                parameters.Add("@PortfolioId", portfolioId);
                 parameters.Add("@Months", months);
 
                 var data = await connection.QueryAsync<PerformanceDataViewModel>(
@@ -223,10 +212,9 @@ namespace Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Failed to fetch Portfolio performance", Core.Enums.Enum.LogLevel.Error, "DashboardRepository.GetPortfolioPerformanceAsync", ex, new Dictionary<string, object>
+                await _loggingService.LogAsync("Failed to fetch Portfolio performance", Core.Enums.Enum.LogLevel.Error, "DashboardRepository.GetPortfolioPerformanceAsync", ex.Message, new Dictionary<string, object>
                 {
                     { "UserId", userId },
-                    { "PortfolioId", portfolioId },
                     { "Months", months }
                 });
                 return DbResponse<List<PerformanceDataViewModel>>.FailureDbResponse(

@@ -115,7 +115,7 @@ namespace EquityTrackerWebAPI.Controllers
             }
             catch(Exception ex)
             {
-                _loggingService.LogAsync("Exception occurred while login", Core.Enums.Enum.LogLevel.Critical, "AuthController.Login", ex, new Dictionary<string, object> { { "Email", model.Email }, { "Password", model.Password } });
+                _loggingService.LogAsync("Exception occurred while login", Core.Enums.Enum.LogLevel.Critical, "AuthController.Login", ex.Message, new Dictionary<string, object> { { "Email", model.Email }, { "Password", model.Password } });
 
                 return APIResponse<object>.FailureResponse(
                     new List<string> { "Internal Server Error" },
@@ -192,7 +192,7 @@ namespace EquityTrackerWebAPI.Controllers
             }
             catch(Exception ex)
             {
-                _loggingService.LogAsync("Exception occurred while registration", Core.Enums.Enum.LogLevel.Critical, "AuthController.Register", ex, new Dictionary<string, object> { { "Name", model.Name.Trim() }, { "Email", model.Email.Trim() } });
+                _loggingService.LogAsync("Exception occurred while registration", Core.Enums.Enum.LogLevel.Critical, "AuthController.Register", ex.Message, new Dictionary<string, object> { { "Name", model.Name.Trim() }, { "Email", model.Email.Trim() } });
 
                 return APIResponse<object>.FailureResponse(
                     new List<string> { "Internal Server Error" },

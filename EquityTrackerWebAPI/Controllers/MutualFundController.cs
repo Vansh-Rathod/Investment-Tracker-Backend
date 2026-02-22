@@ -1,4 +1,4 @@
-﻿using Core.CommonModels;
+using Core.CommonModels;
 using Core.DTOs;
 using Core.Entities;
 using Core.ViewModels;
@@ -7,6 +7,7 @@ using Infrastructure.Interfaces;
 using Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using System.Reflection;
 using static Core.Enums.Enum;
@@ -18,333 +19,456 @@ namespace EquityTrackerWebAPI.Controllers
     [Authorize]
     public class MutualFundController : ControllerBase
     {
-        private readonly IUserEquityRepository _userEquityRepository;
-        private readonly IUserEquityRepository _userEquityRepository;
-        private readonly IUserRepository _userRepository;
+        private readonly IAMCRepository _amcRepository;
         private readonly IMutualFundRepository _mutualFundRepository;
         private readonly ILoggingService _loggingService;
-
-        public MutualFundController( IUserEquityRepository userEquityRepository, IUserRepository userRepository, ILoggingService loggingService )
+        private readonly ICategoryRepository _categoryRepository;
+        public MutualFundController(IAMCRepository amcRepository, IMutualFundRepository mutualFundRepository, ILoggingService loggingService, ICategoryRepository categoryRepository)
         {
-            _userEquityRepository = userEquityRepository;
-            _userRepository = userRepository;
-            _loggingService = loggingService;
-        public MutualFundController( IUserEquityRepository userEquityRepository, IUserRepository userRepository, IMutualFundRepository mutualFundRepository, ILoggingService loggingService )
-        {
-            _userEquityRepository = userEquityRepository;
-            _userRepository = userRepository;
+            _amcRepository = amcRepository;
             _mutualFundRepository = mutualFundRepository;
             _loggingService = loggingService;
+            _categoryRepository = categoryRepository;
         }
 
         /// <summary>
-        /// Get all mutual fund investments with pagination, search & sorting.
+        /// Get all mutual funds with pagination, search & sorting.
         /// </summary>
-        [HttpGet("GetMutualFunds")]
-        public async Task<APIResponse<List<UserEquityViewModel>>> GetMutualFunds(
-            int userId = 0,
-            int equityId = 0,
+        [HttpGet("GetMarketMutualFunds")]
+        public async Task<APIResponse<List<MutualFundViewModel>>> GetMarketMutualFunds(
             int page = 1,
             int pageSize = 10,
             string searchText = "",
-            string sortOrder = "DESC",
-            string sortField = "CreatedDate",
-            bool isActive = true,
-            bool isDeleted = false,
-            string fromDate = null,
-            string toDate = null )
+            string sortOrder = "ASC",
+            string sortField = "FundName",
+            int amcId = 0,
+            int categoryId = 0,
+            int categoryType = 0
+            //bool isActive = true,
+            //bool isDeleted = false
+            )
         {
-            var response = new APIResponse<List<UserEquityViewModel>>();
+            var response = new APIResponse<List<MutualFundViewModel>>();
             try
             {
-                if(userId == 0)
-                {
-                    return APIResponse<List<UserEquityViewModel>>.FailureResponse(
-                       new List<string> { "Validation Failed" },
-                       "Please provide user id greater than 0"
-                    );
-                }
+                var result = await _mutualFundRepository.GetMutualFunds(0, amcId, searchText, categoryId, categoryType, page, pageSize, searchText, sortField, sortOrder);
 
-                var userResult = await _userRepository.GetUsers(
-                    userId,
-                    true,
-                    false,
-                    1,
-                    10,
-                    "",
-                    "DESC",
-                    "CreatedDate"
-                );
-
-                if(!userResult.Success || !userResult.Data.Any())
+                if (!result.Success)
                 {
-                    return APIResponse<List<UserEquityViewModel>>.FailureResponse(
-                       new List<string> { "User Not found" },
-                       $"User not found by Id: {userId}"
+                    return APIResponse<List<MutualFundViewModel>>.FailureResponse(
+                        result.Errors,
+                        result.Message ?? "No Mutual Funds found"
                    );
                 }
 
-                // Default to last 1 day (24 hours)
-                DateTime defaultFrom = DateTime.Now.AddDays(-30);
-                DateTime defaultTo = DateTime.Now;
-
-                // Convert strings → DateTime
-                DateTime fromDt = string.IsNullOrWhiteSpace(fromDate)
-                    ? defaultFrom
-                    : DateTime.Parse(fromDate);
-
-                DateTime toDt = string.IsNullOrWhiteSpace(toDate)
-                    ? defaultTo
-                    : DateTime.Parse(toDate);
-
-                var result = await _userEquityRepository.GetUserEquities(
-                    userId,
-                    equityId,
-                    (int)Core.Enums.Enum.EquityType.MutualFunds,
-                    page,
-                    pageSize,
-                    searchText,
-                    sortOrder,
-                    sortField,
-                    isActive,
-                    isDeleted,
-                    fromDt,
-                    toDt
-                );
-
-                if(!result.Success)
+                if (result.Data == null || !result.Data.Any())
                 {
-                    return APIResponse<List<UserEquityViewModel>>.FailureResponse(
-                       new List<string> { "Something went wrong while fetching mututal funds" },
-                       $"Failed to fetch mutual funds for user Id: {userId}"
-                   );
+                    return APIResponse<List<MutualFundViewModel>>.FailureResponse(
+                    new List<string> { "No Mutual Funds found" },
+                    "No Mutual Funds found"
+                );
                 }
 
-                return APIResponse<List<UserEquityViewModel>>.SuccessResponse(
+                return APIResponse<List<MutualFundViewModel>>.SuccessResponse(
                     result.Data,
                     "Mututal Funds fetched successfully"
                  );
             }
             catch(Exception ex)
             {
-                _loggingService.LogAsync("An error occurred while fetching mutual funds", Core.Enums.Enum.LogLevel.Error, "MutualFundController.GetMutualFunds", ex, null);
-
-                return APIResponse<List<UserEquityViewModel>>.FailureResponse(
-                       new List<string> { "Internal Server Error" },
-                       "An error occurred while fetching mutual funds. Please try again later."
-                   );
-            }
-        }
-
-        [HttpPost("InserUpdateMututalFund")]
-        public async Task<APIResponse<int>> InserUpdateMututalFund( [FromBody] MututalFundDTO model )
-        {
-            try
-            {
-                var userIdClaim = User.FindFirst("userId")?.Value;
-                if(string.IsNullOrWhiteSpace(userIdClaim))
-                {
-                    return APIResponse<int>.FailureResponse(
-                           new List<string> { "Token is invalid" },
-                           "Token is Invalid or Forbidden. Cannot find User Id"
-                       );
-                }
-
-                if(!int.TryParse(userIdClaim, out int userId))
-                {
-                    return APIResponse<int>.FailureResponse(
-                        new List<string> { "Invalid User Id in token" },
-                        "User Id claim is not a valid integer"
-                    );
-                }
-
-                // If user id is 0 then dont allow to create user equity
-                if(userId == 0)
-                {
-                    return APIResponse<int>.FailureResponse(
-                           new List<string> { "Invalid User Id" },
-                           $"UserId: {userId} is not valid for creating/updating a mutual fund"
-                       );
-                }
-
-                int equityId = model?.Id ?? 0;
-
-                if(equityId > 0)
-                {
-                    var userEquityResponse = await _userEquityRepository.GetUserEquities(userId, equityId, (int)EquityType.MutualFunds);
-
-                    if(userEquityResponse.Data == null || !userEquityResponse.Data.Any())
-                    {
-                        return APIResponse<int>.FailureResponse(
-                           new List<string> { "Mutual Fund not found" },
-                           $"Mutual Fund not found by Id: {equityId}"
-                       );
-                    }
-                }
-
-                OperationType operationType = equityId > 0 ? OperationType.UPDATE : OperationType.INSERT;
-
-                UserEquity stockEquity = new UserEquity
-                {
-                    Id = equityId, // 0 -> Create User Mutual Fund Equity, >0 -> Update User Mutual Fund Equity
-                    UserId = userId,
-                    EquityName = model?.Name,
-                    EquityShortForm = model?.ShortForm,
-                    EquityType = (int)EquityType.MutualFunds,
-                    PurchasePrice = model?.NetAssetValue ?? 0,
-                    Quantity = model?.Units ?? 0,
-                    InvestedAmount = (model?.NetAssetValue * model?.Units) ?? 0,
-                    CurrentPrice = model?.CurrentNetAssetValue ?? 0,
-                    InvestmentDate = model?.InvestmentDate ?? DateTime.Now,
-                    OrderId = model?.OrderId,
-                    IsActive = model.IsActive,
-                    CompanyName = model?.AssetManagementCompanyName
-                };
-
-                var result = await _userEquityRepository.InsertUpdateDeleteUserEquity(
-                    stockEquity,
-                    operationType,
-                    equityId
+                await _loggingService.LogAsync(
+                    "Error fetching Mututal Funds",
+                    Core.Enums.Enum.LogLevel.Critical,
+                    "MutualFundController.GetMarketMutualFunds",
+                    ex.Message,
+                    null
                 );
 
-                if(!result.Success && (result.Data <= 0 || result.Data == null))
-                {
-                    return APIResponse<int>.FailureResponse(
-                           new List<string> { "Failed to add/update mutual fund" },
-                           "An error occurred while adding/updating mutual fund. Please try again later."
-                       );
-                }
-
-                return APIResponse<int>.SuccessResponse(
-                        result.Data,
-                        "Mutual Fund Inserted/Updated Successfully"
-                     );
-            }
-            catch(Exception ex)
-            {
-                _loggingService.LogAsync("Exception occurred while Insert/Update Mutual Fund", Core.Enums.Enum.LogLevel.Critical, "MutualFundController.InserUpdateMututalFund", ex, new Dictionary<string, object> { { "MutualFundDTO", model } });
-
-                return APIResponse<int>.FailureResponse(
+                return APIResponse<List<MutualFundViewModel>>.FailureResponse(
                     new List<string> { "Internal Server Error" },
-                    "An error occurred while inserting/updating Mutual Fund. Please try again later."
-                );
-            }
-        }
-
-        [HttpPost("DeleteMutualFund")]
-        public async Task<APIResponse<int>> DeleteMutualFund( int equityId )
-        {
-            try
-            {
-                var userIdClaim = User.FindFirst("userId")?.Value;
-                if(string.IsNullOrWhiteSpace(userIdClaim))
-                {
-                    return APIResponse<int>.FailureResponse(
-                           new List<string> { "Token is invalid" },
-                           "Token is Invalid or Forbidden. Cannot find User Id"
-                       );
-                }
-
-                if(!int.TryParse(userIdClaim, out int userId))
-                {
-                    return APIResponse<int>.FailureResponse(
-                        new List<string> { "Invalid User Id in token" },
-                        "User Id claim is not a valid integer"
-                    );
-                }
-
-                // If user id is 0 then dont allow to create user equity
-                if (userId == 0)
-                {
-                    return APIResponse<int>.FailureResponse(
-                           new List<string> { "Invalid User Id" },
-                           $"UserId: {userId} is not valid for deleting a mutual fund"
-                       );
-                }
-
-                if (equityId <= 0)
-                {
-                    return APIResponse<int>.FailureResponse(
-                           new List<string> { "Invalid Equity Id" },
-                           $"EquityId: {equityId} is not valid for deleting a mutual fund"
-                       );
-                }
-
-                var userEquityResponse = await _userEquityRepository.GetUserEquities(userId, equityId, (int)EquityType.MutualFunds);
-
-                if (userEquityResponse.Data == null || !userEquityResponse.Data.Any())
-                {
-                    return APIResponse<int>.FailureResponse(
-                       new List<string> { "Mutual Fund not found" },
-                       $"Mutual Fund not found by Id: {equityId}"
-                   );
-                }
-
-                UserEquity stockEquity = new UserEquity
-                {
-                    Id = equityId,
-                    UserId = userId
-                };
-
-                var result = await _userEquityRepository.InsertUpdateDeleteUserEquity(
-                    stockEquity,
-                    OperationType.DELETE,
-                    equityId
-                );
-
-                if(!result.Success && (result.Data <= 0 || result.Data == null))
-                {
-                    return APIResponse<int>.FailureResponse(
-                           new List<string> { "Failed to delete mutual fund" },
-                           "An error occurred while deleting mutual fund. Please try again later."
-                       );
-                }
-
-                return APIResponse<int>.SuccessResponse(
-                        result.Data,
-                        "Mutual Fund Deleted Successfully"
-                     );
-            }
-            catch(Exception ex)
-            {
-                _loggingService.LogAsync("Exception occurred while Deleting Mutual Fund", Core.Enums.Enum.LogLevel.Critical, "MutualFundController.DeleteMutualFund", ex, new Dictionary<string, object> { { "EquityId", equityId } });
-
-                return APIResponse<int>.FailureResponse(
-                    new List<string> { "Internal Server Error" },
-                    "An error occurred while deleting Mutual Fund. Please try again later."
+                    "An error occurred while fetching Mututal Funds"
                 );
             }
         }
 
         /// <summary>
-        /// Get available market mutual funds
+        /// Get Mutual Fund Holdings
         /// </summary>
-        [HttpGet("market")]
-        public async Task<APIResponse<List<MutualFundViewModel>>> GetMarketMutualFunds(
-            [FromQuery] int fundId = 0,
-            [FromQuery] int amcId = 0,
-            [FromQuery] string fundName = null,
-            [FromQuery] int categoryId = 0,
-            [FromQuery] int categoryType = 0,
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 20,
-            [FromQuery] string searchText = "",
-            [FromQuery] string sortColumn = "FundName",
-            [FromQuery] string sortOrder = "ASC")
+        [HttpGet("Holdings")]
+        public async Task<APIResponse<List<MutualFundHoldingViewModel>>> GetHoldings()
         {
             try
             {
-                var result = await _mutualFundRepository.GetMutualFunds(fundId, amcId, fundName, categoryId, categoryType, page, pageSize, searchText, sortColumn, sortOrder);
-                if (result.Success)
+                var userIdClaim = User.FindFirst("userId")?.Value;
+                if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
                 {
-                    return APIResponse<List<MutualFundViewModel>>.SuccessResponse(result.Data, result.Message);
+                    return APIResponse<List<MutualFundHoldingViewModel>>.FailureResponse(
+                        new List<string> { "Invalid token" },
+                        "Cannot find valid User Id in token"
+                    );
                 }
-                return APIResponse<List<MutualFundViewModel>>.FailureResponse(result.Errors, result.Message);
+
+                var result = await _mutualFundRepository.GetMutualFundHoldings(userId);
+
+                if (!result.Success)
+                {
+                    return APIResponse<List<MutualFundHoldingViewModel>>.FailureResponse(
+                        result.Errors,
+                        result.Message ?? "No Mutual Fund Holdings found"
+                   );
+                }
+
+                return APIResponse<List<MutualFundHoldingViewModel>>.SuccessResponse(
+                    result.Data,
+                    "Mutual Fund Holdings fetched successfully"
+                 );
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Exception occurred while fetching market mutual funds", Core.Enums.Enum.LogLevel.Error, "MutualFundController.GetMarketMutualFunds", ex, null);
-                return APIResponse<List<MutualFundViewModel>>.FailureResponse(new List<string> { "Internal Server Error" }, "An error occurred while fetching market mutual funds.");
+                await _loggingService.LogAsync(
+                    "Error fetching Mutual Fund Holdings",
+                    Core.Enums.Enum.LogLevel.Critical,
+                    "MutualFundController.GetHoldings",
+                    ex.Message,
+                    null
+                );
+
+                return APIResponse<List<MutualFundHoldingViewModel>>.FailureResponse(
+                    new List<string> { "Internal Server Error" },
+                    "An error occurred while fetching Mutual Fund Holdings"
+                );
+            }
+        }
+
+        /// <summary>
+        /// Get mutual fund by ID
+        /// </summary>
+        [HttpGet("{id}")]
+        public async Task<APIResponse<MutualFundViewModel>> GetMutualFundById([FromRoute] int id)
+        {
+            try
+            {
+                var result = await _mutualFundRepository.GetMutualFunds(id, 0, "", 0, 0, 1, 1, "", "FundName", "ASC");
+
+                if (!result.Success)
+                {
+                    return APIResponse<MutualFundViewModel>.FailureResponse(
+                    result.Errors,
+                    result.Message ?? $"No Mutual Fund found by id : {id}"
+                );
+                }
+
+                if (result.Data == null || !result.Data.Any())
+                {
+                    return APIResponse<MutualFundViewModel>.FailureResponse(
+                    new List<string> { $"No Mutual Fund found by id: {id}" },
+                    $"No Mutual Fund found by id: {id}"
+                );
+                }
+
+                var mutualFund = result.Data.FirstOrDefault();
+
+                return APIResponse<MutualFundViewModel>.SuccessResponse(
+                    mutualFund,
+                    "Mutual Fund fetched successfully"
+                );
+            }
+            catch (Exception ex)
+            {
+                await _loggingService.LogAsync(
+                    "Error fetching Mutual Fund",
+                    Core.Enums.Enum.LogLevel.Critical,
+                    "MutualFundController.GetMutualFundById",
+                    ex.Message,
+                    new Dictionary<string, object> { { "FundId", id } }
+                );
+
+                return APIResponse<MutualFundViewModel>.FailureResponse(
+                    new List<string> { "Internal Server Error" },
+                    "An error occurred while fetching the Mutual Fund"
+                );
+            }
+        }
+
+        /// <summary>
+        /// Create a new mutual fund
+        /// </summary>
+        [HttpPost("CreateMutualFund")]
+        [Authorize(Roles = "Admin")]
+        public async Task<APIResponse<int>> CreateMutualFund([FromBody] CreateMutualFundRequest model)
+        {
+            try
+            {
+                if(model.AMCId <= 0 || string.IsNullOrWhiteSpace(model.FundName) || model.CategoryId <= 0)
+                {
+                    return APIResponse<int>.FailureResponse(
+                        new List<string> { "AMCId, FundName and Category are required fields and must be valid" },
+                        "Invalid input data"
+                    );
+                }
+
+                var amcResult = await _amcRepository.GetAssetManagementCompanies(model.AMCId, null);
+
+                if (!amcResult.Success)
+                {
+                    return APIResponse<int>.FailureResponse(
+                    amcResult.Errors,
+                    amcResult.Message ?? $"No Asset Management Company found by id : {model.AMCId}"
+                );
+                }
+
+                if (amcResult.Data == null || !amcResult.Data.Any())
+                {
+                    return APIResponse<int>.FailureResponse(
+                    new List<string> { $"No Asset Management Company found by id: {model.AMCId}" },
+                    $"No Asset Management Company found by id: {model.AMCId}"
+                );
+                }
+
+                var categoryResult = await _categoryRepository.GetCategories(model.CategoryId, 0, null);
+
+                if (!categoryResult.Success)
+                {
+                    return APIResponse<int>.FailureResponse(
+                    categoryResult.Errors,
+                    categoryResult.Message ?? $"No Category found by id : {model.CategoryId}"
+                );
+                }
+
+                if (categoryResult.Data == null || !categoryResult.Data.Any())
+                {
+                    return APIResponse<int>.FailureResponse(
+                    new List<string> { $"No Category found by id: {model.CategoryId}" },
+                    $"No Category found by id: {model.CategoryId}"
+                );
+                }
+
+                MutualFund mutualFund = new MutualFund()
+                {
+                    AmcId = model.AMCId,
+                    FundName = model.FundName,
+                    Category = model.CategoryId,
+                    ISIN = model.ISIN,
+                    IsActive = model.IsActive
+                };
+
+                var result = await _mutualFundRepository.InsertUpdateDeleteMutualFund(
+                    mutualFund,
+                    OperationType.INSERT
+                );
+
+                if (!result.Success || result.Data == 0)
+                {
+                    return APIResponse<int>.FailureResponse(
+                    new List<string> { "Failed to create Mutual Fund" },
+                    "Failed to create Mutual Fund"
+                );
+                }
+
+                return APIResponse<int>.SuccessResponse(
+                    result.Data,
+                    "Mutual Fund created successfully"
+                );
+            }
+            catch (Exception ex)
+            {
+                await _loggingService.LogAsync(
+                    "Error creating mutual fund",
+                    Core.Enums.Enum.LogLevel.Critical,
+                    "MutualFundController.CreateMutualFund",
+                    ex.Message,
+                    new Dictionary<string, object> { { "Request", model } }
+                );
+
+                return APIResponse<int>.FailureResponse(
+                    new List<string> { "Internal Server Error" },
+                    "An error occurred while creating the mutual fund"
+                );
+            }
+        }
+
+        /// <summary>
+        /// Update an existing mutual fund
+        /// </summary>
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<APIResponse<int>> UpdateMutualFund([FromRoute] int id, [FromBody] UpdateMutualFundRequest model)
+        {
+            try
+            {
+                if (model.AMCId <= 0 || string.IsNullOrWhiteSpace(model.FundName) || model.CategoryId <= 0)
+                {
+                    return APIResponse<int>.FailureResponse(
+                        new List<string> { "AMCId, FundName and Category are required fields and must be valid" },
+                        "Invalid input data"
+                    );
+                }
+
+                model.FundId = id;
+
+                var mutualFundResult = await _mutualFundRepository.GetMutualFunds(id, 0, "", 0, 0, 1, 1, "", "FundName", "ASC");
+
+                if (!mutualFundResult.Success)
+                {
+                    return APIResponse<int>.FailureResponse(
+                    mutualFundResult.Errors,
+                    mutualFundResult.Message ?? $"No Mutual Fund found by id : {model.FundId}"
+                );
+                }
+
+                if (mutualFundResult.Data == null || !mutualFundResult.Data.Any())
+                {
+                    return APIResponse<int>.FailureResponse(
+                    new List<string> { $"No Mutual Fund found by id: {model.FundId}" },
+                    $"No Mutual Fund found by id: {model.FundId}"
+                );
+                }
+
+                var amcResult = await _amcRepository.GetAssetManagementCompanies(model.AMCId, null);
+
+                if (!amcResult.Success)
+                {
+                    return APIResponse<int>.FailureResponse(
+                    amcResult.Errors,
+                    amcResult.Message ?? $"No Asset Management Company found by id : {model.AMCId}"
+                );
+                }
+
+                if (amcResult.Data == null || !amcResult.Data.Any())
+                {
+                    return APIResponse<int>.FailureResponse(
+                    new List<string> { $"No Asset Management Company found by id: {model.AMCId}" },
+                    $"No Asset Management Company found by id: {model.AMCId}"
+                );
+                }
+
+                var categoryResult = await _categoryRepository.GetCategories(model.CategoryId, 0, null);
+
+                if (!categoryResult.Success)
+                {
+                    return APIResponse<int>.FailureResponse(
+                    categoryResult.Errors,
+                    categoryResult.Message ?? $"No Category found by id : {model.CategoryId}"
+                );
+                }
+
+                if (categoryResult.Data == null || !categoryResult.Data.Any())
+                {
+                    return APIResponse<int>.FailureResponse(
+                    new List<string> { $"No Category found by id: {model.CategoryId}" },
+                    $"No Category found by id: {model.CategoryId}"
+                );
+                }
+
+                MutualFund mutualFund = new MutualFund()
+                {
+                    FundId = model.FundId,
+                    AmcId = model.AMCId,
+                    FundName = model.FundName,
+                    Category = model.CategoryId,
+                    ISIN = model.ISIN,
+                    IsActive = model.IsActive
+                };
+
+                var result = await _mutualFundRepository.InsertUpdateDeleteMutualFund(
+                    mutualFund,
+                    OperationType.UPDATE
+                );
+
+                if (!result.Success || result.Data == 0)
+                {
+                    return APIResponse<int>.FailureResponse(
+                    new List<string> { "Failed to update Mutual Fund" },
+                    "Failed to update Mutual Fund"
+                );
+                }
+
+                return APIResponse<int>.SuccessResponse(
+                    result.Data,
+                    "Mutual Fund updated successfully"
+                );
+            }
+            catch (Exception ex)
+            {
+                await _loggingService.LogAsync(
+                    "Error updating mutual fund",
+                    Core.Enums.Enum.LogLevel.Critical,
+                    "MutualFundController.UpdateMutualFund",
+                    ex.Message,
+                    new Dictionary<string, object> { { "FundId", id }, { "Request", model } }
+                );
+
+                return APIResponse<int>.FailureResponse(
+                    new List<string> { "Internal Server Error" },
+                    "An error occurred while updating the mutual fund"
+                );
+            }
+        }
+
+        /// <summary>
+        /// Delete an existing mutual fund
+        /// </summary>
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<APIResponse<int>> DeleteMutualFund([FromRoute] int id)
+        {
+            try
+            {
+                var mutualFundResult = await _mutualFundRepository.GetMutualFunds(id, 0, "", 0, 0, 1, 1, "", "FundName", "ASC");
+
+                if (!mutualFundResult.Success)
+                {
+                    return APIResponse<int>.FailureResponse(
+                    mutualFundResult.Errors,
+                    mutualFundResult.Message ?? $"No Mutual Fund found by id : {id}"
+                );
+                }
+
+                if (mutualFundResult.Data == null || !mutualFundResult.Data.Any())
+                {
+                    return APIResponse<int>.FailureResponse(
+                    new List<string> { $"No Mutual Fund found by id: {id}" },
+                    $"No Mutual Fund found by id: {id}"
+                );
+                }
+
+                MutualFund mutualFund = new MutualFund()
+                {
+                    FundId = id
+                };
+
+                var result = await _mutualFundRepository.InsertUpdateDeleteMutualFund(
+                    mutualFund,
+                    OperationType.DELETE
+                );
+
+                if (!result.Success || result.Data == 0)
+                {
+                    return APIResponse<int>.FailureResponse(
+                    new List<string> { "Failed to delete Mutual Fund" },
+                    "Failed to delete Mutual Fund"
+                );
+                }
+
+                return APIResponse<int>.SuccessResponse(
+                    result.Data,
+                    "Mutual Fund deleted successfully"
+                );
+            }
+            catch(Exception ex)
+            {
+                await _loggingService.LogAsync(
+                    "Error deleting mutual fund",
+                    Core.Enums.Enum.LogLevel.Critical,
+                    "MutualFundController.DeleteMutualFund",
+                    ex.Message,
+                    new Dictionary<string, object> { { "FundId", id } }
+                );
+
+                return APIResponse<int>.FailureResponse(
+                    new List<string> { "Internal Server Error" },
+                    "An error occurred while deleting the mutual fund"
+                );
             }
         }
     }

@@ -5,7 +5,7 @@ namespace Core.Entities
     public class Transaction
     {
         public int TransactionId { get; set; }
-        public int PortfolioId { get; set; }
+        public int UserId { get; set; }
         public int AssetTypeId { get; set; } // 1 = Stock, 2 = Mutual Fund
         public int AssetId { get; set; } // StockId or FundId
         public int TransactionType { get; set; } // 1 = BUY, 2 = SELL, 3 = DIVIDEND, 4 = SPLIT, 5 = BONUS

@@ -12,7 +12,6 @@ namespace Infrastructure.Interfaces
     {
         Task<DbResponse<List<TransactionViewModel>>> GetUserTransactionsAsync(
             int userId,
-            int portfolioId = 0,
             int assetId = 0,
             int assetTypeId = 0,
             int transactionType = 0,

@@ -28,7 +28,6 @@ namespace Infrastructure.Repositories
 
         public async Task<DbResponse<List<TransactionViewModel>>> GetUserTransactionsAsync(
             int userId,
-            int portfolioId = 0,
             int assetId = 0,
             int assetTypeId = 0,
             int transactionType = 0,
@@ -41,7 +40,6 @@ namespace Infrastructure.Repositories
 
                 var parameters = new DynamicParameters();
                 parameters.Add("@UserId", userId);
-                parameters.Add("@PortfolioId", portfolioId);
                 parameters.Add("@AssetId", assetId);
                 parameters.Add("@AssetTypeId", assetTypeId);
                 parameters.Add("@TransactionType", transactionType);
@@ -60,10 +58,9 @@ namespace Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Failed to fetch Transactions", Core.Enums.Enum.LogLevel.Error, "TransactionRepository.GetUserTransactionsAsync", ex, new Dictionary<string, object>
+                await _loggingService.LogAsync("Failed to fetch Transactions", Core.Enums.Enum.LogLevel.Error, "TransactionRepository.GetUserTransactionsAsync", ex.Message, new Dictionary<string, object>
                 {
                     { "UserId", userId },
-                    { "PortfolioId", portfolioId },
                     { "AssetId", assetId },
                     { "AssetTypeId", assetTypeId },
                     { "TransactionType", transactionType },
@@ -84,7 +81,7 @@ namespace Infrastructure.Repositories
             {
                 using var connection = _connectionFactory.CreateConnection();
                 var parameters = new DynamicParameters();
-                parameters.Add("@PortfolioId", transaction.PortfolioId);
+                parameters.Add("@UserId", transaction.UserId);
                 parameters.Add("@AssetTypeId", transaction.AssetTypeId);
                 parameters.Add("@AssetId", transaction.AssetId);
                 parameters.Add("@TransactionType", transaction.TransactionType);
@@ -107,9 +104,9 @@ namespace Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Failed to insert Transaction", Core.Enums.Enum.LogLevel.Error, "TransactionRepository.InsertTransaction", ex, new Dictionary<string, object>
+                await _loggingService.LogAsync("Failed to insert Transaction", Core.Enums.Enum.LogLevel.Error, "TransactionRepository.InsertTransaction", ex.Message, new Dictionary<string, object>
                 {
-                    { "PortfolioId", transaction?.PortfolioId },
+                    { "UserId", transaction?.UserId },
                     { "AssetId", transaction?.AssetId },
                     { "TransactionType", transaction?.TransactionType }
                 });

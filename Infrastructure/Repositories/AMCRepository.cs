@@ -47,7 +47,7 @@ namespace Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Failed to fetch AMCs", Core.Enums.Enum.LogLevel.Error, "AMCRepository.GetAssetManagementCompanies", ex, new Dictionary<string, object>
+                await _loggingService.LogAsync("Failed to fetch AMCs", Core.Enums.Enum.LogLevel.Error, "AMCRepository.GetAssetManagementCompanies", ex.Message, new Dictionary<string, object>
                 {
                     { "AMCId", amcId },
                     { "AMCName", amcName }
@@ -82,7 +82,7 @@ namespace Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Failed to perform AMC operation", Core.Enums.Enum.LogLevel.Error, "AMCRepository.InsertUpdateDeleteAMC", ex, new Dictionary<string, object>
+                await _loggingService.LogAsync("Failed to perform AMC operation", Core.Enums.Enum.LogLevel.Error, "AMCRepository.InsertUpdateDeleteAMC", ex.Message, new Dictionary<string, object>
                 {
                     { "OperationType", operationType },
                     { "AmcId", amc?.AmcId },

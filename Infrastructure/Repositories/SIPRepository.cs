@@ -26,7 +26,7 @@ namespace Infrastructure.Repositories
             _loggingService = loggingService;
         }
 
-        public async Task<DbResponse<List<SIPViewModel>>> GetUserSIPsAsync(int userId, int sipId = 0, int portfolioId = 0, int sipStatus = 0, int portfolioType = 0)
+        public async Task<DbResponse<List<SIPViewModel>>> GetUserSIPsAsync(int userId, int sipId = 0, int sipStatus = 0)
         {
             try
             {
@@ -35,29 +35,56 @@ namespace Infrastructure.Repositories
                 var parameters = new DynamicParameters();
                 parameters.Add("@UserId", userId);
                 parameters.Add("@SipId", sipId);
-                parameters.Add("@PortfolioId", portfolioId);
                 parameters.Add("@SipStatus", sipStatus);
-                parameters.Add("@PortfolioType", portfolioType);
 
                 var data = await connection.QueryAsync<SIPViewModel>(
                     "GetUserSIPs",
                     parameters,
                     commandType: CommandType.StoredProcedure);
 
+                var sips = data.ToList();
+                var today = DateTime.Today;
+
+                foreach (var sip in sips)
+                {
+                    if (sip.SipStatus == 1) // Active
+                    {
+                        try
+                        {
+                            int sipDay = sip.SipDate.Day;
+                            int daysInCurrentMonth = DateTime.DaysInMonth(today.Year, today.Month);
+                            int dayToUse = Math.Min(sipDay, daysInCurrentMonth);
+
+                            DateTime nextDate = new DateTime(today.Year, today.Month, dayToUse);
+
+                            if (nextDate < today)
+                            {
+                                nextDate = nextDate.AddMonths(1);
+                                // Re-clamp for next month if AddMonths didn't handle "Month end stickiness" as desired (AddMonths(1) to Jan 31 gives Feb 28. But if we started with Feb 28 and original was Jan 31? .NET AddMonths preserves end-of-month logic if started there? No, strict adding.)
+                                // Actually, simpler: just take next month.
+                            }
+                            sip.NextSipDate = nextDate;
+                        }
+                        catch
+                        {
+                            // Fallback
+                            sip.NextSipDate = null;
+                        }
+                    }
+                }
+
                 return DbResponse<List<SIPViewModel>>.SuccessDbResponse(
-                    data.ToList(),
+                    sips,
                     "SIPs fetched successfully"
                 );
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Failed to fetch SIPs", Core.Enums.Enum.LogLevel.Error, "SIPRepository.GetUserSIPsAsync", ex, new Dictionary<string, object>
+                await _loggingService.LogAsync("Failed to fetch SIPs", Core.Enums.Enum.LogLevel.Error, "SIPRepository.GetUserSIPsAsync", ex.Message, new Dictionary<string, object>
                 {
                     { "UserId", userId },
                     { "SipId", sipId },
-                    { "PortfolioId", portfolioId },
-                    { "SipStatus", sipStatus },
-                    { "PortfolioType", portfolioType }
+                    { "SipStatus", sipStatus }
                 });
                 return DbResponse<List<SIPViewModel>>.FailureDbResponse(
                     new List<SIPViewModel>(),
@@ -75,7 +102,7 @@ namespace Infrastructure.Repositories
                 var parameters = new DynamicParameters();
                 parameters.Add("@OperationType", (int)operationType);
                 parameters.Add("@SipId", sip.SipId);
-                parameters.Add("@PortfolioId", sip.PortfolioId);
+                parameters.Add("@UserId", sip.UserId);
                 parameters.Add("@AssetTypeId", sip.AssetTypeId);
                 parameters.Add("@AssetId", sip.AssetId);
                 parameters.Add("@SipAmount", sip.SipAmount);
@@ -97,11 +124,11 @@ namespace Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Failed to perform SIP operation", Core.Enums.Enum.LogLevel.Error, "SIPRepository.InsertUpdateDeleteSIP", ex, new Dictionary<string, object>
+                await _loggingService.LogAsync("Failed to perform SIP operation", Core.Enums.Enum.LogLevel.Error, "SIPRepository.InsertUpdateDeleteSIP", ex.Message, new Dictionary<string, object>
                 {
                     { "OperationType", operationType },
                     { "SipId", sip?.SipId },
-                    { "PortfolioId", sip?.PortfolioId }
+                    { "UserId", sip?.UserId }
                 });
                 return DbResponse<int>.FailureDbResponse(0, new List<string> { "Failed to perform SIP operation." }, "Exception occurred");
             }

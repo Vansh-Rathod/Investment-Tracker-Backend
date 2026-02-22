@@ -38,7 +38,7 @@ namespace EquityTrackerWebAPI.Controllers
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Exception occurred while fetching Categories", Core.Enums.Enum.LogLevel.Error, "CategoryController.GetCategories", ex, null);
+                await _loggingService.LogAsync("Exception occurred while fetching Categories", Core.Enums.Enum.LogLevel.Error, "CategoryController.GetCategories", ex.Message, null);
                 return APIResponse<List<CategoryViewModel>>.FailureResponse(new List<string> { "Internal Server Error" }, "An error occurred while fetching Categories.");
             }
         }

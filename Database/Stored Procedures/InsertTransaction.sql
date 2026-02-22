@@ -1,6 +1,7 @@
+-- Uses UserId instead of PortfolioId (portfolio feature removed for fetching by user).
 CREATE PROCEDURE [dbo].[InsertTransaction]
 (
-    @PortfolioId INT,
+    @UserId INT,
     @AssetTypeId INT,
     @AssetId INT,
     @TransactionType INT,
@@ -15,8 +16,8 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    INSERT INTO Transactions (PortfolioId, AssetTypeId, AssetId, TransactionType, Units, Price, Amount, TransactionDate, SourceType, SourceId, CreatedDate)
-    VALUES (@PortfolioId, @AssetTypeId, @AssetId, @TransactionType, @Units, @Price, @Amount, @TransactionDate, @SourceType, @SourceId, GETDATE());
+    INSERT INTO Transactions (UserId, AssetTypeId, AssetId, TransactionType, Units, Price, Amount, TransactionDate, SourceType, SourceId, CreatedDate)
+    VALUES (@UserId, @AssetTypeId, @AssetId, @TransactionType, @Units, @Price, @Amount, @TransactionDate, @SourceType, @SourceId, GETDATE());
     
     SELECT SCOPE_IDENTITY() AS TransactionId;
 END

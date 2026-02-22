@@ -43,7 +43,7 @@ namespace Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Failed to fetch Exchanges", Core.Enums.Enum.LogLevel.Error, "ExchangeRepository.GetExchanges", ex, new Dictionary<string, object>
+                await _loggingService.LogAsync("Failed to fetch Exchanges", Core.Enums.Enum.LogLevel.Error, "ExchangeRepository.GetExchanges", ex.Message, new Dictionary<string, object>
                 {
                     { "ExchangeId", exchangeId },
                     { "ExchangeName", exchangeName }

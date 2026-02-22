@@ -43,7 +43,7 @@ namespace Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Failed to fetch Asset Types", Core.Enums.Enum.LogLevel.Error, "AssetTypeRepository.GetAssetTypes", ex, new Dictionary<string, object>
+                await _loggingService.LogAsync("Failed to fetch Asset Types", Core.Enums.Enum.LogLevel.Error, "AssetTypeRepository.GetAssetTypes", ex.Message, new Dictionary<string, object>
                 {
                     { "AssetTypeId", assetTypeId },
                     { "AssetName", assetName }

@@ -19,7 +19,7 @@ namespace GenericServices.LoggingService
             _configuration = configuration;
         }
 
-        public async Task LogAsync( string message, Core.Enums.Enum.LogLevel level = Core.Enums.Enum.LogLevel.Info, string source = "Application", Exception? exception = null, Dictionary<string, object>? additionalData = null )
+        public async Task LogAsync( string message, Core.Enums.Enum.LogLevel level = Core.Enums.Enum.LogLevel.Info, string source = "Application", string? exception = null, Dictionary<string, object>? additionalData = null )
         {
             try
             {
@@ -44,7 +44,6 @@ namespace GenericServices.LoggingService
                     Source = source,
                     Message = message,
                     Exception = exception?.ToString(),
-                    StackTrace = exception?.StackTrace,
                     AdditionalData = additionalData
 
                     // Additional Data can have IPAddress, Device(IPhone, Samsung, etc.)

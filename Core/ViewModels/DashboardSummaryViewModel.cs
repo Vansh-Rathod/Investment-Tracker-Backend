@@ -11,6 +11,10 @@ namespace Core.ViewModels
         public int XIRR { get; set; }
         public int DayChange { get; set; }
         public int DayChangePercentage { get; set; }
+        public decimal StockInvestedAmount { get; set; }
+        public decimal StockCurrentValue { get; set; }
+        public decimal MFInvestedAmount { get; set; }
+        public decimal MFCurrentValue { get; set; }
         //public decimal MutualFundsValue { get; set; }
         //public decimal StocksValue { get; set; }
         //public int MutualFundsCount { get; set; }

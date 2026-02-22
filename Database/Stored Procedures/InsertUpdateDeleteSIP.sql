@@ -1,8 +1,9 @@
+-- Uses UserId instead of PortfolioId (portfolio feature removed).
 CREATE PROCEDURE [dbo].[InsertUpdateDeleteSIP]
 (
     @OperationType INT,
     @SipId INT = 0,
-    @PortfolioId INT,
+    @UserId INT,
     @AssetTypeId INT,
     @AssetId INT,
     @SipAmount DECIMAL(10, 2),
@@ -18,14 +19,14 @@ BEGIN
 
     IF @OperationType = 1
     BEGIN
-        INSERT INTO SIPs (PortfolioId, AssetTypeId, AssetId, SipAmount, Frequency, SipDate, StartDate, EndDate, Status, CreatedDate)
-        VALUES (@PortfolioId, @AssetTypeId, @AssetId, @SipAmount, @Frequency, @SipDate, @StartDate, @EndDate, @Status, GETDATE());
+        INSERT INTO SIPs (UserId, AssetTypeId, AssetId, SipAmount, Frequency, SipDate, StartDate, EndDate, Status, CreatedDate)
+        VALUES (@UserId, @AssetTypeId, @AssetId, @SipAmount, @Frequency, @SipDate, @StartDate, @EndDate, @Status, GETDATE());
         SELECT SCOPE_IDENTITY() AS SipId;
     END
     ELSE IF @OperationType = 2
     BEGIN
         UPDATE SIPs
-        SET PortfolioId = @PortfolioId,
+        SET UserId = @UserId,
             AssetTypeId = @AssetTypeId,
             AssetId = @AssetId,
             SipAmount = @SipAmount,

@@ -1,8 +1,10 @@
 using Core.CommonModels;
 using Core.DTOs;
+using Core.Entities;
 using Core.ViewModels;
 using GenericServices.Interfaces;
 using Infrastructure.Interfaces;
+using Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -25,8 +27,8 @@ namespace EquityTrackerWebAPI.Controllers
         /// <summary>
         /// Get all portfolios for the authenticated user
         /// </summary>
-        [HttpGet]
-        public async Task<APIResponse<List<PortfolioViewModel>>> GetPortfolios()
+        [HttpGet("GetUserPortfolios")]
+        public async Task<APIResponse<List<PortfolioViewModel>>> GetUserPortfolios()
         {
             try
             {
@@ -39,10 +41,26 @@ namespace EquityTrackerWebAPI.Controllers
                     );
                 }
 
-                var portfolios = await _portfolioRepository.GetUserPortfoliosAsync(userId);
+                var portfoliosResult = await _portfolioRepository.GetUserPortfoliosAsync(userId);
+
+                if (!portfoliosResult.Success)
+                {
+                    return APIResponse<List<PortfolioViewModel>>.FailureResponse(
+                    portfoliosResult.Errors,
+                    portfoliosResult.Message ?? "No Portfolio found"
+                );
+                }
+
+                if (portfoliosResult.Data == null || !portfoliosResult.Data.Any())
+                {
+                    return APIResponse<List<PortfolioViewModel>>.FailureResponse(
+                    new List<string> { "No Portfolio found" },
+                    "No Portfolio found"
+                );
+                }
 
                 return APIResponse<List<PortfolioViewModel>>.SuccessResponse(
-                    portfolios.Data,
+                    portfoliosResult.Data,
                     "Portfolios fetched successfully"
                 );
             }
@@ -51,8 +69,8 @@ namespace EquityTrackerWebAPI.Controllers
                 await _loggingService.LogAsync(
                     "Error fetching portfolios",
                     Core.Enums.Enum.LogLevel.Error,
-                    "PortfolioController.GetPortfolios",
-                    ex,
+                    "PortfolioController.GetUserPortfolios",
+                    ex.Message,
                     null
                 );
 
@@ -67,31 +85,39 @@ namespace EquityTrackerWebAPI.Controllers
         /// Get a specific portfolio by ID
         /// </summary>
         [HttpGet("{id}")]
-        public async Task<APIResponse<PortfolioDTO>> GetPortfolio(int id)
+        public async Task<APIResponse<PortfolioViewModel>> GetPortfolioById([FromRoute] int id)
         {
             try
             {
                 var userIdClaim = User.FindFirst("userId")?.Value;
                 if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
                 {
-                    return APIResponse<PortfolioDTO>.FailureResponse(
+                    return APIResponse<PortfolioViewModel>.FailureResponse(
                         new List<string> { "Invalid token" },
                         "Cannot find valid User Id in token"
                     );
                 }
 
-                var portfolio = await _portfolioRepository.GetPortfolioByIdAsync(id, userId);
+                var portfoliosResult = await _portfolioRepository.GetUserPortfoliosAsync(userId, id);
 
-                if (portfolio == null)
+                if (!portfoliosResult.Success)
                 {
-                    return APIResponse<PortfolioDTO>.FailureResponse(
-                        new List<string> { "Portfolio not found" },
-                        $"Portfolio with ID {id} not found"
-                    );
+                    return APIResponse<PortfolioViewModel>.FailureResponse(
+                    portfoliosResult.Errors,
+                    portfoliosResult.Message ?? $"No Portfolio found by id: {id}"
+                );
                 }
 
-                return APIResponse<PortfolioDTO>.SuccessResponse(
-                    portfolio,
+                if (portfoliosResult.Data == null || !portfoliosResult.Data.Any())
+                {
+                    return APIResponse<PortfolioViewModel>.FailureResponse(
+                    new List<string> { $"No Portfolio found by id: {id}" },
+                    $"No Portfolio found by id: {id}"
+                );
+                }
+
+                return APIResponse<PortfolioViewModel>.SuccessResponse(
+                    portfoliosResult.Data.FirstOrDefault(),
                     "Portfolio fetched successfully"
                 );
             }
@@ -100,12 +126,12 @@ namespace EquityTrackerWebAPI.Controllers
                 await _loggingService.LogAsync(
                     "Error fetching portfolio",
                     Core.Enums.Enum.LogLevel.Error,
-                    "PortfolioController.GetPortfolio",
-                    ex,
+                    "PortfolioController.GetPortfolioById",
+                    ex.Message,
                     new Dictionary<string, object> { { "PortfolioId", id } }
                 );
 
-                return APIResponse<PortfolioDTO>.FailureResponse(
+                return APIResponse<PortfolioViewModel>.FailureResponse(
                     new List<string> { "Internal Server Error" },
                     "An error occurred while fetching the portfolio"
                 );
@@ -115,7 +141,7 @@ namespace EquityTrackerWebAPI.Controllers
         /// <summary>
         /// Create a new portfolio
         /// </summary>
-        [HttpPost]
+        [HttpPost("CreatePortfolio")]
         public async Task<APIResponse<int>> CreatePortfolio([FromBody] CreatePortfolioRequest request)
         {
             try
@@ -137,10 +163,25 @@ namespace EquityTrackerWebAPI.Controllers
                     );
                 }
 
-                var portfolioId = await _portfolioRepository.CreatePortfolioAsync(userId, request);
+                Portfolio portfolio = new Portfolio
+                {
+                    Name = request.Name,
+                    UserId = userId,
+                    PortfolioType = request.PortfolioType
+                };
+
+                var result = await _portfolioRepository.InsertUpdateDeletePortfolio(portfolio, Core.Enums.Enum.OperationType.INSERT);
+
+                if (!result.Success || result.Data == 0)
+                {
+                    return APIResponse<int>.FailureResponse(
+                        new List<string> { "Failed to create Portfolio" },
+                        "Failed to create Portfolio"
+                    );
+                }
 
                 return APIResponse<int>.SuccessResponse(
-                    portfolioId,
+                    result.Data,
                     "Portfolio created successfully"
                 );
             }
@@ -148,9 +189,9 @@ namespace EquityTrackerWebAPI.Controllers
             {
                 await _loggingService.LogAsync(
                     "Error creating portfolio",
-                    Core.Enums.Enum.LogLevel.Error,
+                    Core.Enums.Enum.LogLevel.Critical,
                     "PortfolioController.CreatePortfolio",
-                    ex,
+                    ex.Message,
                     new Dictionary<string, object> { { "Request", request } }
                 );
 
@@ -165,14 +206,14 @@ namespace EquityTrackerWebAPI.Controllers
         /// Update an existing portfolio
         /// </summary>
         [HttpPut("{id}")]
-        public async Task<APIResponse<bool>> UpdatePortfolio(int id, [FromBody] UpdatePortfolioRequest request)
+        public async Task<APIResponse<int>> UpdatePortfolio([FromRoute] int id, [FromBody] UpdatePortfolioRequest request)
         {
             try
             {
                 var userIdClaim = User.FindFirst("userId")?.Value;
                 if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
                 {
-                    return APIResponse<bool>.FailureResponse(
+                    return APIResponse<int>.FailureResponse(
                         new List<string> { "Invalid token" },
                         "Cannot find valid User Id in token"
                     );
@@ -180,25 +221,53 @@ namespace EquityTrackerWebAPI.Controllers
 
                 if (string.IsNullOrWhiteSpace(request.Name))
                 {
-                    return APIResponse<bool>.FailureResponse(
+                    return APIResponse<int>.FailureResponse(
                         new List<string> { "Validation failed" },
                         "Portfolio name is required"
                     );
                 }
 
                 request.PortfolioId = id;
-                var success = await _portfolioRepository.UpdatePortfolioAsync(userId, request);
 
-                if (!success)
+                // Check if portfolio exists
+                var existingPortfolioResult = await _portfolioRepository.GetUserPortfoliosAsync(userId, id);
+
+                if (!existingPortfolioResult.Success)
                 {
-                    return APIResponse<bool>.FailureResponse(
-                        new List<string> { "Update failed" },
-                        "Failed to update portfolio"
+                    return APIResponse<int>.FailureResponse(
+                        existingPortfolioResult.Errors,
+                        existingPortfolioResult.Message ?? $"No Portfolio found by id: {id}"
                     );
                 }
 
-                return APIResponse<bool>.SuccessResponse(
-                    true,
+                if (existingPortfolioResult.Data == null || !existingPortfolioResult.Data.Any())
+                {
+                    return APIResponse<int>.FailureResponse(
+                        new List<string> { $"No Portfolio found by id: {id}" },
+                        $"No Portfolio found by id: {id}"
+                    );
+                }
+
+                Portfolio portfolio = new Portfolio
+                {
+                    PortfolioId = id,
+                    Name = request.Name,
+                    UserId = userId, // Ensure user owns the portfolio being updated
+                    PortfolioType = request.PortfolioType
+                };
+
+                var result = await _portfolioRepository.InsertUpdateDeletePortfolio(portfolio, Core.Enums.Enum.OperationType.UPDATE);
+
+                if (!result.Success || result.Data == 0)
+                {
+                    return APIResponse<int>.FailureResponse(
+                        new List<string> { "Failed to update Portfolio" },
+                        "Failed to update Portfolio"
+                    );
+                }
+
+                return APIResponse<int>.SuccessResponse(
+                    result.Data,
                     "Portfolio updated successfully"
                 );
             }
@@ -206,13 +275,13 @@ namespace EquityTrackerWebAPI.Controllers
             {
                 await _loggingService.LogAsync(
                     "Error updating portfolio",
-                    Core.Enums.Enum.LogLevel.Error,
+                    Core.Enums.Enum.LogLevel.Critical,
                     "PortfolioController.UpdatePortfolio",
-                    ex,
+                    ex.Message,
                     new Dictionary<string, object> { { "PortfolioId", id }, { "Request", request } }
                 );
 
-                return APIResponse<bool>.FailureResponse(
+                return APIResponse<int>.FailureResponse(
                     new List<string> { "Internal Server Error" },
                     "An error occurred while updating the portfolio"
                 );
@@ -223,31 +292,56 @@ namespace EquityTrackerWebAPI.Controllers
         /// Delete a portfolio
         /// </summary>
         [HttpDelete("{id}")]
-        public async Task<APIResponse<bool>> DeletePortfolio(int id)
+        public async Task<APIResponse<int>> DeletePortfolio(int id)
         {
             try
             {
                 var userIdClaim = User.FindFirst("userId")?.Value;
                 if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
                 {
-                    return APIResponse<bool>.FailureResponse(
+                    return APIResponse<int>.FailureResponse(
                         new List<string> { "Invalid token" },
                         "Cannot find valid User Id in token"
                     );
                 }
 
-                var success = await _portfolioRepository.DeletePortfolioAsync(id, userId);
+                // Check if portfolio exists
+                var existingPortfolioResult = await _portfolioRepository.GetUserPortfoliosAsync(userId, id);
 
-                if (!success)
+                if (!existingPortfolioResult.Success)
                 {
-                    return APIResponse<bool>.FailureResponse(
-                        new List<string> { "Delete failed" },
-                        "Failed to delete portfolio. It may have existing transactions or SIPs."
+                    return APIResponse<int>.FailureResponse(
+                        existingPortfolioResult.Errors,
+                        existingPortfolioResult.Message ?? $"No Portfolio found by id: {id}"
                     );
                 }
 
-                return APIResponse<bool>.SuccessResponse(
-                    true,
+                if (existingPortfolioResult.Data == null || !existingPortfolioResult.Data.Any())
+                {
+                    return APIResponse<int>.FailureResponse(
+                        new List<string> { $"No Portfolio found by id: {id}" },
+                        $"No Portfolio found by id: {id}"
+                    );
+                }
+
+                Portfolio portfolio = new Portfolio
+                {
+                    PortfolioId = id,
+                    UserId = userId
+                };
+
+                var result = await _portfolioRepository.InsertUpdateDeletePortfolio(portfolio, Core.Enums.Enum.OperationType.DELETE);
+
+                if (!result.Success || result.Data == 0)
+                {
+                    return APIResponse<int>.FailureResponse(
+                        new List<string> { "Failed to delete Portfolio" },
+                        "Failed to delete Portfolio. It may have existing transactions or SIPs."
+                    );
+                }
+
+                return APIResponse<int>.SuccessResponse(
+                    result.Data,
                     "Portfolio deleted successfully"
                 );
             }
@@ -255,13 +349,13 @@ namespace EquityTrackerWebAPI.Controllers
             {
                 await _loggingService.LogAsync(
                     "Error deleting portfolio",
-                    Core.Enums.Enum.LogLevel.Error,
+                    Core.Enums.Enum.LogLevel.Critical,
                     "PortfolioController.DeletePortfolio",
-                    ex,
+                    ex.Message,
                     new Dictionary<string, object> { { "PortfolioId", id } }
                 );
 
-                return APIResponse<bool>.FailureResponse(
+                return APIResponse<int>.FailureResponse(
                     new List<string> { "Internal Server Error" },
                     "An error occurred while deleting the portfolio"
                 );

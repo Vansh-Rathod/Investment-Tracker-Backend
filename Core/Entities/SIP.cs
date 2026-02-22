@@ -5,7 +5,7 @@ namespace Core.Entities
     public class SIP
     {
         public int SipId { get; set; }
-        public int PortfolioId { get; set; }
+        public int UserId { get; set; }
         public int AssetTypeId { get; set; } // 1 = Stock, 2 = Mutual Fund
         public int AssetId { get; set; } // StockId or FundId
         public decimal SipAmount { get; set; }

@@ -44,7 +44,7 @@ namespace Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Failed to fetch Categories", Core.Enums.Enum.LogLevel.Error, "CategoryRepository.GetCategories", ex, new Dictionary<string, object>
+                await _loggingService.LogAsync("Failed to fetch Categories", Core.Enums.Enum.LogLevel.Error, "CategoryRepository.GetCategories", ex.Message, new Dictionary<string, object>
                 {
                     { "CategoryId", categoryId },
                     { "CategoryType", categoryType },

@@ -45,6 +45,8 @@ namespace EquityTrackerWebAPI.Services
             //    }
             //}
 
+            //claims.Add(new Claim(ClaimTypes.Role, "Admin"));
+
 
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             var token = new JwtSecurityToken(

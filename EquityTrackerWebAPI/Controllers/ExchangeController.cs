@@ -11,8 +11,8 @@ using System.Threading.Tasks;
 namespace EquityTrackerWebAPI.Controllers
 {
     [Route("api/[controller]")]
-    [ApiController]
     [Authorize(Roles = "Admin")]
+    [Authorize]
     public class ExchangeController : ControllerBase
     {
         private readonly IExchangeRepository _exchangeRepository;
@@ -38,7 +38,7 @@ namespace EquityTrackerWebAPI.Controllers
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Exception occurred while fetching Exchanges", Core.Enums.Enum.LogLevel.Error, "ExchangeController.GetExchanges", ex, null);
+                await _loggingService.LogAsync("Exception occurred while fetching Exchanges", Core.Enums.Enum.LogLevel.Error, "ExchangeController.GetExchanges", ex.Message, null);
                 return APIResponse<List<ExchangeViewModel>>.FailureResponse(new List<string> { "Internal Server Error" }, "An error occurred while fetching Exchanges.");
             }
         }

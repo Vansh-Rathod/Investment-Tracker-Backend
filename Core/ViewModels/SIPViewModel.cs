@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,10 +9,7 @@ namespace Core.ViewModels
     public class SIPViewModel
     {
         public int SipId { get; set; }
-        public int PortfolioId { get; set; }
-        public string PortfolioName { get; set; }
-        public int PortfolioType { get; set; }
-        public string PortfolioTypeName { get; set; }
+        public int UserId { get; set; }
         public int AssetTypeId { get; set; }
         public string AssetTypeName { get; set; }
         public int AssetId { get; set; }
@@ -25,6 +22,7 @@ namespace Core.ViewModels
         public DateTime SipDate { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }
+        public DateTime? NextSipDate { get; set; }
         public int SipStatus { get; set; } // 1 = Active, 2 = Paused, 3 = Cancelled
         public DateTime CreatedDate { get; set; }
         public DateTime? ModifiedDate { get; set; }

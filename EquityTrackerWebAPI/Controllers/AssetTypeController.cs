@@ -38,7 +38,7 @@ namespace EquityTrackerWebAPI.Controllers
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Exception occurred while fetching Asset Types", Core.Enums.Enum.LogLevel.Error, "AssetTypeController.GetAssetTypes", ex, null);
+                await _loggingService.LogAsync("Exception occurred while fetching Asset Types", Core.Enums.Enum.LogLevel.Error, "AssetTypeController.GetAssetTypes", ex.Message, null);
                 return APIResponse<List<AssetTypeViewModel>>.FailureResponse(new List<string> { "Internal Server Error" }, "An error occurred while fetching Asset Types.");
             }
         }

@@ -52,7 +52,7 @@ namespace Infrastructure.Repositories
             }
             catch(Exception ex)
             {
-                await _loggingService.LogAsync("Failed to fetch users", Core.Enums.Enum.LogLevel.Error, "UserRepository.GetUsers", ex, new Dictionary<string, object>
+                await _loggingService.LogAsync("Failed to fetch users", Core.Enums.Enum.LogLevel.Error, "UserRepository.GetUsers", ex.Message, new Dictionary<string, object>
                 {
                     { "UserId", userId },
                     { "IsActive", isActive },
@@ -104,7 +104,7 @@ namespace Infrastructure.Repositories
             }
             catch(Exception ex)
             {
-                await _loggingService.LogAsync("Exception occurred while fetching user by email", Core.Enums.Enum.LogLevel.Error, "UserRepository.GetUserByEmail", ex, new Dictionary<string, object> 
+                await _loggingService.LogAsync("Exception occurred while fetching user by email", Core.Enums.Enum.LogLevel.Error, "UserRepository.GetUserByEmail", ex.Message, new Dictionary<string, object> 
                 { 
                     { "Email", email },
                     { "IsActive", isActive },
@@ -154,7 +154,7 @@ namespace Infrastructure.Repositories
                     "Exception occurred while performing Insert/Update/Delete user operation",
                     Core.Enums.Enum.LogLevel.Error,
                     "UserRepository.InsertUpdateDeleteUser",
-                    ex,
+                    ex.Message,
                     new Dictionary<string, object>
                     {
                         { "OperationType", operationType.ToString() },

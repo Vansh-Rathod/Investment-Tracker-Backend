@@ -52,7 +52,7 @@ namespace Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Failed to fetch Stocks", Core.Enums.Enum.LogLevel.Error, "StockRepository.GetStocks", ex, new Dictionary<string, object>
+                await _loggingService.LogAsync("Failed to fetch Stocks", Core.Enums.Enum.LogLevel.Error, "StockRepository.GetStocks", ex.Message, new Dictionary<string, object>
                 {
                     { "StockId", stockId },
                     { "Page", page },
@@ -98,13 +98,44 @@ namespace Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                await _loggingService.LogAsync("Failed to perform Stock operation", Core.Enums.Enum.LogLevel.Error, "StockRepository.InsertUpdateDeleteStock", ex, new Dictionary<string, object>
+                await _loggingService.LogAsync("Failed to perform Stock operation", Core.Enums.Enum.LogLevel.Error, "StockRepository.InsertUpdateDeleteStock", ex.Message, new Dictionary<string, object>
                 {
                     { "OperationType", operationType },
                     { "StockId", stock?.StockId },
                     { "StockName", stock?.StockName }
                 });
                 return DbResponse<int>.FailureDbResponse(0, new List<string> { "Failed to perform Stock operation." }, "Exception occurred");
+            }
+        }
+        public async Task<DbResponse<List<UserStockHoldingViewModel>>> GetStockHoldings(int userId)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                var parameters = new DynamicParameters();
+                parameters.Add("@UserId", userId);
+
+                var data = await connection.QueryAsync<UserStockHoldingViewModel>(
+                    "GetStockHoldings",
+                    parameters,
+                    commandType: CommandType.StoredProcedure);
+
+                return DbResponse<List<UserStockHoldingViewModel>>.SuccessDbResponse(
+                    data.ToList(),
+                    "Stock holdings fetched successfully"
+                );
+            }
+            catch (Exception ex)
+            {
+                await _loggingService.LogAsync("Failed to fetch Stock holdings", Core.Enums.Enum.LogLevel.Error, "StockRepository.GetStockHoldings", ex.Message, new Dictionary<string, object>
+                {
+                    { "UserId", userId }
+                });
+                return DbResponse<List<UserStockHoldingViewModel>>.FailureDbResponse(
+                    new List<UserStockHoldingViewModel>(),
+                    new List<string> { "Failed to fetch Stock holdings." },
+                    "Exception occurred while fetching holdings"
+                );
             }
         }
     }

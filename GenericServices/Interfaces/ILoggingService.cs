@@ -12,7 +12,7 @@ namespace GenericServices.Interfaces
         Task LogAsync( string message,
                  LogLevel level = LogLevel.Info,
                  string source = "Application",
-                 Exception? exception = null,
+                 string? exception = null,
                  Dictionary<string, object>? additionalData = null );
     }
 }
